@@ -6,6 +6,7 @@ on:
     paths:
       - 'last-token/**'
       - 'model-atlas/**'
+      - 'model-glossary/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -27,12 +28,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # 站点根就是 last-token/，这样 https://liveldy.github.io/last-token/ 这个地址不用变；
-      # 模型能力图鉴挂在同一站点的 /model-atlas/ 下面。
+      # 模型能力图鉴与模型术语图鉴挂在同一站点的 /model-atlas/ 与 /model-glossary/ 下面。
       - name: 组装站点
         run: |
-          mkdir -p _site/model-atlas
+          mkdir -p _site/model-atlas _site/model-glossary
           cp -R last-token/. _site/
           cp -R model-atlas/. _site/model-atlas/
+          cp -R model-glossary/. _site/model-glossary/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

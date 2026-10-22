@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型术语图鉴 · AI 里那批常被含糊带过的词</title>
+<meta name="description" content="把 AI 模型里常被提到的术语讲清楚：词元、上下文、成本、缓存命中、蒸馏、破甲、智能体、插件、多模态、思考等级、权限、工作空间、开源协议，以及 GPQA、HLE 这些基准。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23111827'/%3E%3Cg stroke='%234285f4' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M9 11h14'/%3E%3Cpath d='M9 16h9'/%3E%3Cpath d='M9 21h12' stroke='%239ca3af'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ========== 氛围层 ========== -->
+<div id="bg" aria-hidden="true">
+  <div id="glow-a" class="glow"></div>
+  <div id="glow-b" class="glow"></div>
+  <div id="dots"></div>
+  <canvas id="grain"></canvas>
+  <div id="vignette"></div>
+</div>
+
+<!-- ========== 顶栏 ========== -->
+<header id="top">
+  <div class="brand">
+    <h1>模型术语图鉴</h1>
+    <p id="sub">AI 里那批常被问到、也常被含糊带过的词</p>
+  </div>
+  <div id="controls">
+    <button type="button" id="btn-about" class="ctl icon" aria-label="关于与其它页面" aria-haspopup="dialog" title="关于与其它页面">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+        <circle cx="8" cy="3.1" r="1.5"></circle><circle cx="8" cy="8" r="1.5"></circle><circle cx="8" cy="12.9" r="1.5"></circle>
+      </svg>
+    </button>
+    <button type="button" id="btn-theme" class="ctl icon" aria-label="切换明暗主题" title="切换明暗主题">
+      <span data-theme-icon>☾</span>
+    </button>
+  </div>
+</header>
+
+<!-- ========== 主体：左正文右目录 ========== -->
+<main id="app">
+
+  <section id="doc-pane" aria-labelledby="doc-title">
+    <div class="pane-head">
+      <div class="head-row">
+        <h2 id="doc-title">术语</h2>
+        <span class="head-note" id="doc-count"></span>
+      </div>
+      <p class="pane-sub" id="doc-sub"></p>
+      <div id="group-chips" class="legend"></div>
+    </div>
+    <div id="terms"></div>
+  </section>
+
+  <nav id="nav-pane" aria-labelledby="nav-title">
+    <div class="pane-head">
+      <div class="head-row">
+        <h2 id="nav-title">目录</h2>
+        <span class="head-note" id="nav-count"></span>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="7" cy="7" r="4.6"></circle><path d="M10.4 10.4 14 14"></path>
+        </svg>
+        <input id="search" type="search" placeholder="搜索术语、英文名或关键词…" aria-label="搜索术语" autocomplete="off">
+      </div>
+    </div>
+    <ol id="toc"></ol>
+  </nav>
+
+</main>
+
+<p id="hint" role="status">
+  <span class="dot" aria-hidden="true"></span>
+  点目录里的任一条滚到它并点亮 · 滚动正文时目录会跟着亮
+</p>
+
+<!-- ========== 关于 ========== -->
+<dialog id="about" aria-labelledby="about-title">
+  <div class="about-top">
+    <h2 id="about-title">关于这一页</h2>
+    <button type="button" id="about-close" class="icon-btn" aria-label="关闭">✕</button>
+  </div>
+  <p class="about-lead">
+    这里收的是 AI 模型里最常被提起、也最容易被含糊带过的那批词。左边是正文，右边是目录；
+    目录里的每一条都能点，滚动正文时目录会自己跟着亮。
+  </p>
+
+  <h3>怎么排的</h3>
+  <p class="about-note">
+    顺序本身就是一份说明：<b>计量与计费</b>讲清楚「一句话值多少钱」，
+    <b>一次请求里发生的事</b>讲清楚这句话经历了什么，<b>模型本身</b>讲清楚那个东西是什么，
+    再往后是<b>思考与推理</b>、<b>能力与评测</b>、<b>让模型干活</b>、<b>安全与边界</b>、
+    <b>多模态与生成</b>，最后落到<b>买与用的现实</b>。九组、八十多条。
+  </p>
+
+  <h3>写的时候守的两条</h3>
+  <p class="about-note">
+    一，每个词都给「它为什么存在、什么时候会咬你一口」，不给背诵式的定义；
+    二，凡是有争议或会变的口径（价格、榜单、协议条款），都写明「按谁的算法」和「什么时候会变」。
+  </p>
+  <p class="about-note">
+    有些条目会牵涉到攻击手法（比如<b>破甲</b>、<b>提示注入</b>）。这里只讲它是什么、危险在哪、
+    该怎么防，不给可操作的做法。
+  </p>
+
+  <h3>同仓库的其它页面</h3>
+  <ul id="about-pages" class="about-sources"></ul>
+
+  <h3>说明</h3>
+  <p class="about-note">
+    非商业的第三方整理。这里的说法尽量贴着公开资料与工程实践，不替任何一家厂商背书；
+    涉及具体价格、名次与协议条款时，以官方文档为准。
+  </p>
+</dialog>
+
+<script src="data/terms-groups.js"></script>
+<script src="data/terms-01-usage.js"></script>
+<script src="data/terms-02-request.js"></script>
+<script src="data/terms-03-model.js"></script>
+<script src="data/terms-04-thinking.js"></script>
+<script src="data/terms-05-bench.js"></script>
+<script src="data/terms-06-agentic.js"></script>
+<script src="data/terms-07-safety.js"></script>
+<script src="data/terms-08-media.js"></script>
+<script src="data/terms-09-eco.js"></script>
+<script src="ambience.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

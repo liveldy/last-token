@@ -81,6 +81,9 @@
   <ul id="about-sources" class="about-sources"></ul>
   <p class="about-note" id="about-state"></p>
 
+  <h3>同仓库的其它页面</h3>
+  <ul id="about-pages" class="about-sources"></ul>
+
   <h3>形象来源与授权</h3>
   <p class="about-note">
     角色的拟人设计与立绘来自
@@ -106,5 +109,29 @@
 <script src="data/model-data.js"></script>
 <script src="ambience.js"></script>
 <script src="app.js"></script>
+<script>
+/* 「图鉴与来源」里那两个入口。地址要分两种：仓库里三个目录是平级的（双击打开、
+   或跑 tools/serve.cjs 都是这样），站点上则是这一页在根、另两个是它的子目录。 */
+(function () {
+  var local = location.protocol === 'file:' ||
+    /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  var box = document.getElementById('about-pages');
+  if (!box) return;
+  [
+    ['模型能力图鉴', local ? '../model-atlas/' : 'model-atlas/',
+      '把综合能力与参考成本画成一张散点图，配全部 395 个模型的排行榜'],
+    ['模型术语图鉴', local ? '../model-glossary/' : 'model-glossary/',
+      '词元、上下文、成本、缓存命中、蒸馏、破甲、智能体、权限、开源协议…八十多条术语的说明']
+  ].forEach(function (p) {
+    var li = document.createElement('li');
+    var a = document.createElement('a');
+    a.href = p[1];
+    a.textContent = p[0];
+    li.appendChild(a);
+    li.appendChild(document.createTextNode(' —— ' + p[2]));
+    box.appendChild(li);
+  });
+}());
+</script>
 </body>
 </html>

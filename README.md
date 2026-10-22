@@ -8,6 +8,8 @@
 
 另有一个独立的新页面 [**模型能力图鉴 · Model Atlas**](model-atlas/)：左边是按厂商着色的能力 - 成本散点图，
 右边是全部 395 个模型的排行榜，点一下互相跳转，同样是网页版 + 壁纸版两份。
+还有一份 [**模型术语图鉴 · Model Glossary**](model-glossary/)：九组 88 条术语的说明，
+从词元、上下文、成本一直讲到蒸馏、破甲、智能体与开源协议。
 
 ## 仓库里有什么
 
@@ -17,6 +19,7 @@
 | [`last-token-we/`](last-token-we/) | 同一页面的 Wallpaper Engine 壁纸版（自包含 WE 工程，11 个用户属性） | WE 编辑器里「打开工程」选 `last-token-we/project.json` |
 | [`model-atlas/`](model-atlas/) | 模型能力图鉴网页版：能力 - 成本散点图 + 395 个模型的排行榜 | 在线看：<https://liveldy.github.io/last-token/model-atlas/> ；或双击 `model-atlas/index.html` |
 | [`model-atlas-we/`](model-atlas-we/) | 上面那份图鉴的 Wallpaper Engine 壁纸版（自包含 WE 工程，9 个用户属性） | WE 编辑器里「打开工程」选 `model-atlas-we/project.json` |
+| [`model-glossary/`](model-glossary/) | 模型术语图鉴：九组 88 条 AI 术语的说明 | 在线看：<https://liveldy.github.io/last-token/model-glossary/> ；或双击 `model-glossary/index.html` |
 | `banquet-dusk/` | 更早一版的纯氛围壁纸工程 | —— |
 | `bg.jpeg` | 原始底图 | —— |
 
@@ -56,6 +59,16 @@ node model-atlas/tools/build-data.cjs  # 重新生成数据快照
 
 这两个工程同样共用一套文件（`styles.css` / `ambience.js` / `app.js` / `data/` / `tools/build-data.cjs`），
 改动时也保持逐字节一致。
+
+## 模型术语图鉴
+
+第三个页面，也是纯静态的：[`model-glossary/`](model-glossary/) 把 AI 里那批常被含糊带过的词
+按九组排开——计量与计费、一次请求、模型本身、思考与推理、能力与评测、让模型干活、安全与边界、
+多模态、买与用的现实，一共 88 条。左边正文、右边目录，点目录跳转、滚动时目录跟着亮。
+
+`index.html` 直接双击就能用，内容全在 `data/terms-*.js` 里，不需要服务也不需要构建。
+
+三个页面之间可以互相跳：`last-token/` 的「图鉴与来源」弹窗里有通往模型能力图鉴与模型术语图鉴的入口。
 
 ## 数据与授权
 
