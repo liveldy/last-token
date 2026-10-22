@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>宴会厅的黄昏 · Banquet Dusk</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="stage">
+
+    <!-- 图片所在的空间：整体缩放与平移，形成呼吸和视差 -->
+    <div id="space">
+      <div class="photo"></div>
+      <div class="beams" id="beams"></div>
+      <div class="windows" id="windows"></div>
+    </div>
+
+    <!-- 前景氛围层：尘埃、冷调、暖光、烛光呼吸、鼠标提灯、暗角、颗粒 -->
+    <canvas id="motes"></canvas>
+    <div id="cool"></div>
+    <div id="wash"></div>
+    <div id="ambient"></div>
+    <div id="lantern"></div>
+    <div id="vignette"></div>
+    <canvas id="grain"></canvas>
+    <div id="fade"></div>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

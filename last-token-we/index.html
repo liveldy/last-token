@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最后的 Token · AI 拟人图鉴与模型账本</title>
+<meta name="description" content="一张 AI 模型拟人化的“最后的晚餐”，点击画面里的任意角色，查看它各个版本的综合能力与参考成本。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23f3f4f6'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='17' font-weight='600' fill='%23111827' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ========== 画面本体：黄昏宴会厅 + 氛围层 + 角色热区 ========== -->
+<div id="stage" aria-hidden="true">
+
+  <!-- 图片所在的空间：整体缩放与平移，热区跟着一起动 -->
+  <div id="space">
+    <div class="photo"></div>
+    <div class="beams" id="beams"></div>
+    <div class="windows" id="windows"></div>
+    <div class="hotspots" id="hotspots"></div>
+  </div>
+
+  <!-- 前景氛围层 -->
+  <canvas id="motes"></canvas>
+  <div id="cool"></div>
+  <div id="wash"></div>
+  <div id="ambient"></div>
+  <div id="lantern"></div>
+  <div id="vignette"></div>
+  <canvas id="grain"></canvas>
+  <div id="fade"></div>
+</div>
+
+<!-- ========== 界面层 ========== -->
+<div id="controls">
+  <button type="button" id="btn-about" class="ctl icon" aria-label="图鉴与来源" aria-haspopup="dialog" title="图鉴与来源">
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+      <circle cx="8" cy="3.1" r="1.5"></circle><circle cx="8" cy="8" r="1.5"></circle><circle cx="8" cy="12.9" r="1.5"></circle>
+    </svg>
+  </button>
+  <button type="button" id="btn-theme" class="ctl icon" aria-label="切换明暗主题" title="切换明暗主题">
+    <span data-theme-icon>☾</span>
+  </button>
+</div>
+
+<p id="hint" role="status">
+  <span class="dot" aria-hidden="true"></span>
+  点击画面里的任意一位角色，看它各个版本的综合能力与参考成本
+</p>
+
+<div id="scrim" hidden></div>
+
+<!-- ========== 角色档案面板 ========== -->
+<aside id="panel" aria-labelledby="p-name" aria-hidden="true" hidden>
+  <div class="panel-top">
+    <div>
+      <p class="eyebrow" id="p-eyebrow">角色档案</p>
+      <h2 id="p-name">—</h2>
+      <p class="panel-org" id="p-org">—</p>
+    </div>
+    <button type="button" id="p-close" class="icon-btn" aria-label="关闭档案面板">✕</button>
+  </div>
+  <p class="panel-look" id="p-look"></p>
+  <div class="panel-body" id="p-body"></div>
+</aside>
+
+<!-- ========== 图鉴与来源 ========== -->
+<dialog id="about" aria-labelledby="about-title">
+  <div class="about-top">
+    <h2 id="about-title">图鉴与来源</h2>
+    <button type="button" id="about-close" class="icon-btn" aria-label="关闭">✕</button>
+  </div>
+  <p class="about-lead">
+    这张画里坐着 13 位 AI 模型的拟人形象。点画面里的角色，或点下面任意一行，都能打开它的档案：
+    各个版本的综合能力（ZeroEval general 指数）和参考价格。
+  </p>
+  <ul id="about-list" class="about-list"></ul>
+
+  <h3>数据来源</h3>
+  <ul id="about-sources" class="about-sources"></ul>
+  <p class="about-note" id="about-state"></p>
+
+  <h3>形象来源与授权</h3>
+  <p class="about-note">
+    角色的拟人设计与立绘来自
+    <a href="https://genderswapai.com/zh-CN/ai-gijinka" target="_blank" rel="noreferrer">genderswapai.com 的 AI 拟人图鉴</a>，
+    原画作者为 ZipZipPipe 及社区画师，采用
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>
+    授权。本站为非商业的同人展示，角色形象版权归原作者所有。
+  </p>
+  <p class="about-note">
+    画中每位角色与厂商的对应关系，是用图鉴的立绘与画中人物的发色、服饰、徽章逐个比对得出的。
+  </p>
+
+  <h3>版权与数据</h3>
+  <p class="about-note">
+    角色形象 © genderswapai.com 图鉴作者（CC BY-NC-SA 4.0）· 能力与价格数据来自 ZeroEval / LLM Stats 与 OpenRouter。
+  </p>
+  <p class="about-note">
+    <button type="button" id="data-status" class="status" title="点击重新拉取实时数据">数据加载中…</button>
+  </p>
+</dialog>
+
+<script>window.LAST_TOKEN_WALLPAPER = true;</script>
+<script src="data/models-snapshot.js"></script>
+<script src="data/model-data.js"></script>
+<script src="ambience.js"></script>
+<script src="app.js"></script>
+<script src="wallpaper.js"></script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+/* ==========================================================================
+   宴会厅的黄昏 · Wallpaper Engine Web 壁纸样式
+   所有坐标百分比都以原图（2880x1440）为基准，由 main.js 换算到屏幕。
+   ========================================================================== */
+
+:root {
+  --warm: 255 202 148;   /* 阳光色，对应设置里的“光线颜色” */
+  --intensity: 1;        /* 氛围强度 */
+  --light: 1;            /* 光线强度 */
+  --glow: 1;             /* 柔光强度 */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #05040a;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #05040a;
+}
+
+/* ---------- 图片层：整体呼吸 + 鼠标视差 ---------- */
+#space {
+  position: absolute;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.photo {
+  position: absolute;
+  inset: 0;
+  background: #000 url("assets/bg.jpg") center / 100% 100% no-repeat;
+  filter: saturate(1.07) contrast(1.07) brightness(0.99);
+}
+
+/* ---------- 阳光光柱（与照片里的光斑对齐的叠加发光） ---------- */
+.beams {
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.beam {
+  position: absolute;
+  filter: blur(26px);
+  will-change: opacity;
+}
+
+/* ---------- 后墙三扇窗：日落光呼吸 + 远处城市灯火 ---------- */
+.windows {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.winwrap { position: absolute; }
+
+/* 窗户向墙面溢出的暖光晕 */
+.win-halo {
+  position: absolute;
+  inset: -55%;
+  mix-blend-mode: screen;
+  filter: blur(16px);
+  background: radial-gradient(closest-side,
+    rgb(var(--warm) / .24), rgb(var(--warm) / .08) 55%, transparent 78%);
+  will-change: opacity;
+}
+
+/* 玻璃区域：裁切，内部的光晕像是窗外的天空在流动 */
+.win {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+
+.win-sky {
+  position: absolute;
+  inset: -18% -26%;
+  background: radial-gradient(112% 78% at 50% 46%,
+    rgb(255 214 170 / .34), rgb(255 168 122 / .13) 52%, transparent 80%);
+  animation: skyDrift 26s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes skyDrift {
+  from { transform: translate3d(-2.5%, 0, 0); }
+  to   { transform: translate3d(2.5%, .8%, 0); }
+}
+
+/* 窗内远处的地面灯火，只分布在玻璃的下半部分 */
+.win-tw {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44%;
+}
+
+.win-tw i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgb(255 228 180);
+  box-shadow: 0 0 5px 1px rgb(255 190 120 / .85);
+  filter: blur(.4px);
+  animation: twinkle 5s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: .10; }
+  42%      { opacity: .92; }
+  68%      { opacity: .38; }
+}
+
+/* ---------- 尘埃粒子（随光线增强） ---------- */
+#motes {
+  position: absolute;
+  inset: -6%;
+  width: 112%;
+  height: 112%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: transform;
+}
+
+/* ---------- 暗部的冷调，用来压住右侧阴影 ---------- */
+#cool {
+  position: absolute;
+  inset: -4%;
+  background: linear-gradient(118deg, transparent 40%, rgb(92 118 186 / .17) 86%);
+  mix-blend-mode: multiply;
+  opacity: .85;
+  pointer-events: none;
+}
+
+/* ---------- 左上角漏出的暖光雾 ---------- */
+#wash {
+  position: absolute;
+  inset: -6%;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 64% at 3% 14%, rgb(var(--warm) / .34), rgb(var(--warm) / .09) 48%, transparent 76%),
+    radial-gradient(48% 42% at 9% 94%, rgb(var(--warm) / .18), transparent 72%);
+  will-change: opacity, transform;
+}
+
+/* ---------- 全屏暖色呼吸（烛光感） ---------- */
+#ambient {
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--warm) / .03);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+/* ---------- 跟随鼠标的提灯 ---------- */
+#lantern {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 42vmax;
+  height: 42vmax;
+  margin: -21vmax 0 0 -21vmax;
+  background: radial-gradient(closest-side,
+    rgb(var(--warm) / .28), rgb(var(--warm) / .07) 48%, transparent 74%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* ---------- 暗角 ---------- */
+#vignette {
+  position: absolute;
+  inset: -6%;
+  pointer-events: none;
+  will-change: transform, opacity;
+  background:
+    radial-gradient(116% 102% at 42% 46%,
+      rgba(0,0,0,0) 36%, rgb(10 6 18 / .46) 74%, rgb(6 4 12 / .80) 100%),
+    linear-gradient(to top, rgb(10 5 2 / .36), rgba(0,0,0,0) 38%);
+}
+
+/* ---------- 胶片颗粒 ---------- */
+#grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* ---------- 启动淡入 ---------- */
+#fade {
+  position: absolute;
+  inset: 0;
+  background: #05040a;
+  opacity: 1;
+  transition: opacity 1.8s ease-out;
+  pointer-events: none;
+}

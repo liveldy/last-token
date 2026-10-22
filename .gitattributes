@@ -1,0 +1,8 @@
+# 统一按 LF 存进仓库；两个工程共用文件要靠改写前先比对字节，换行别漂
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary

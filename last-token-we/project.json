@@ -1,0 +1,95 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "AI 模型拟人化的“最后的晚餐”，做成会呼吸的黄昏宴会厅壁纸：阳光从左侧斜射进来，光柱缓慢明灭，后墙三扇窗的日落光像云过一样呼吸，窗外城市灯火闪烁，尘埃只在被照亮的地方浮出来；画面本身有极缓慢的推拉与鼠标视差，前景暖雾、暗角、胶片颗粒分层移动。\n\n鼠标点到画里的任意一位角色，就能看到她所代表的模型家族里各个版本的综合能力（ZeroEval general 指数）与参考价格；没人动的时候浮层会自动收起来，桌面只剩画面。屏幕比例把两端裁掉时，画面会沿被裁的方向缓慢往返，一段时间里能看到整张图。\n\n原图：bg.jpeg（2880×1440）。角色形象来自 genderswapai.com 的 AI 拟人图鉴（作者 ZipZipPipe 等，CC BY-NC-SA 4.0，非商业同人展示）；能力与价格数据来自 ZeroEval / LLM Stats 与 OpenRouter。",
+	"file" : "index.html",
+	"general" : {
+		"properties" : {
+			"intensity" : {
+				"order" : 0,
+				"text" : "氛围强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"lightstrength" : {
+				"order" : 1,
+				"text" : "光线强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"glow" : {
+				"order" : 2,
+				"text" : "柔光强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"parallax" : {
+				"order" : 3,
+				"text" : "视差强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"panorama" : {
+				"order" : 4,
+				"text" : "全景滚动（看到整张图）",
+				"type" : "bool",
+				"value" : true
+			},
+			"panspeed" : {
+				"order" : 5,
+				"text" : "滚动速度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"lightcolor" : {
+				"order" : 6,
+				"text" : "光线颜色",
+				"type" : "color",
+				"value" : "1.00 0.79 0.58"
+			},
+			"dust" : {
+				"order" : 7,
+				"text" : "尘埃粒子",
+				"type" : "bool",
+				"value" : true
+			},
+			"drift" : {
+				"order" : 8,
+				"text" : "画面呼吸",
+				"type" : "bool",
+				"value" : true
+			},
+			"audio" : {
+				"order" : 9,
+				"text" : "随音乐起伏",
+				"type" : "bool",
+				"value" : true
+			},
+			"interactive" : {
+				"order" : 10,
+				"text" : "可点角色档案",
+				"type" : "bool",
+				"value" : true
+			}
+		}
+	},
+	"preview" : "preview.jpg",
+	"tags" : [ "Anime", "Fantasy" ],
+	"title" : "最后的 Token · The Last Token",
+	"type" : "web",
+	"version" : 1
+}

@@ -1,0 +1,89 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "1440p 宴会厅黄昏场景的氛围化壁纸。阳光从左侧斜射进来，光柱在空气里缓慢明灭；后墙三扇窗的日落光会像云过一样呼吸，窗内远处城市灯火闪烁；尘埃微粒只在被照亮的地方浮出来。画面本身有极缓慢的推拉（呼吸）与鼠标视差，前景的暖雾、暗角、胶片颗粒分层移动，形成纵深。右下方压了一层冷色，和左上的暖光形成黄昏的色温对比。所有效果都能在属性面板里调节。\n\n原图：bg.jpeg（2880×1440）。",
+	"file" : "index.html",
+	"general" : {
+		"properties" : {
+			"intensity" : {
+				"order" : 0,
+				"text" : "氛围强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"lightstrength" : {
+				"order" : 1,
+				"text" : "光线强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"glow" : {
+				"order" : 2,
+				"text" : "柔光强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"parallax" : {
+				"order" : 3,
+				"text" : "视差强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"panorama" : {
+				"order" : 4,
+				"text" : "全景滚动（看到整张图）",
+				"type" : "bool",
+				"value" : true
+			},
+			"panspeed" : {
+				"order" : 5,
+				"text" : "滚动速度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"lightcolor" : {
+				"order" : 6,
+				"text" : "光线颜色",
+				"type" : "color",
+				"value" : "1.00 0.79 0.58"
+			},
+			"dust" : {
+				"order" : 7,
+				"text" : "尘埃粒子",
+				"type" : "bool",
+				"value" : true
+			},
+			"drift" : {
+				"order" : 8,
+				"text" : "画面呼吸",
+				"type" : "bool",
+				"value" : true
+			},
+			"audio" : {
+				"order" : 9,
+				"text" : "随音乐起伏",
+				"type" : "bool",
+				"value" : true
+			}
+		}
+	},
+	"preview" : "preview.jpg",
+	"tags" : [ "Anime", "Fantasy" ],
+	"title" : "宴会厅的黄昏 · Banquet Dusk",
+	"type" : "web",
+	"version" : 1
+}
