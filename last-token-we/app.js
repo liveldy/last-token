@@ -563,12 +563,20 @@
   }
 
   /* 能不能取实时数据，取决于页面是怎么打开的：
-       file://   → 浏览器一律不放行跨域，直接用快照，连试都不试（免得控制台一片红）
-       http(s):// → 先走本地服务的同源代理，再退回直连 */
+       file://          → 浏览器一律不放行跨域，直接用快照，连试都不试（免得控制台一片红）
+       localhost 的 http → 先走本地服务的同源代理，再退回直连
+       其它 http(s)      → 没有代理可用，两个数据源都不发 CORS 头，直连也只会刷一屏红，直接跳过 */
+  function isLocalHost() {
+    var h = location.hostname;
+    return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
+  }
+
   function candidates(src) {
     var proto = location.protocol;
     if (proto === 'file:') return [];
-    if (proto === 'http:' || proto === 'https:') return [src.proxy, src.url];
+    if (proto === 'http:' || proto === 'https:') {
+      return isLocalHost() ? [src.proxy, src.url] : [];
+    }
     return [src.url];
   }
 
@@ -606,10 +614,16 @@
     });
 
     if (!combos.length) {
-      setStatus('快照数据 · ' + when(state.data.snapshotAt) + '（本地打开，用 node tools/serve.cjs 可取实时数据）', 'warn');
-      dataStatus.title = '浏览器不让 file:// 页面跨域取数，这里是打包好的快照。' +
-        '想拿实时数据：在工程目录里跑 node tools/serve.cjs，再打开 http://localhost:8787/；' +
-        '或者跑 node tools/build-data.cjs 重新生成快照。';
+      var local = location.protocol === 'file:' || isLocalHost();
+      setStatus('快照数据 · ' + when(state.data.snapshotAt) +
+        (local ? '（本地打开，用 node tools/serve.cjs 可取实时数据）'
+               : '（本页没有数据代理，实时数据需本地跑 node tools/serve.cjs）'), 'warn');
+      dataStatus.title = local
+        ? '浏览器不让 file:// 页面跨域取数，这里是打包好的快照。' +
+          '想拿实时数据：在工程目录里跑 node tools/serve.cjs，再打开 http://localhost:8787/；' +
+          '或者跑 node tools/build-data.cjs 重新生成快照。'
+        : '两个数据源都不发 CORS 头，只有挂在本地服务（node tools/serve.cjs）下才取得到实时数据。' +
+          '本页显示的是打包好的快照；要更新，在工程目录里跑 node tools/build-data.cjs。';
       return Promise.resolve(false);
     }
 
