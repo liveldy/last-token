@@ -1,0 +1,80 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "把 AI 模型的能力与价格画成一张会呼吸的图鉴壁纸：左边是能力 - 成本散点图（横轴参考成本、纵轴 ZeroEval general 综合能力，只画最靠前的那些模型），右边是全部 395 个模型的排行榜。点图上的点，右侧榜单会跳到那一名并把它点亮；点榜单任意一行，弹出它的详情：综合能力、二十多项基准记录、上下文与参数量、官方标价，以及按三个示例工作量算出来的一次要花多少钱。\n\n没人碰的时候浮层自动收起来，桌面只剩图：两团很慢的光晕、一层淡点阵、暗角与胶片颗粒，鼠标移动时有极轻微的视差；安静下来之后它还会按自己的节奏轮流点亮榜上的模型，换高亮的间隔可以调。屏幕窄的时候会自动改成上下排布。\n\n数据来自 ZeroEval / LLM Stats 与 OpenRouter 的公开接口，快照打包在工程里，壁纸不联网。此为非商业的第三方整理，与任何一家模型厂商无关。",
+	"file" : "index.html",
+	"general" : {
+		"properties" : {
+			"intensity" : {
+				"order" : 0,
+				"text" : "氛围强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"glow" : {
+				"order" : 1,
+				"text" : "柔光强度",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 0,
+				"max" : 200,
+				"editable" : true
+			},
+			"motion" : {
+				"order" : 2,
+				"text" : "画面呼吸",
+				"type" : "bool",
+				"value" : true
+			},
+			"points" : {
+				"order" : 3,
+				"text" : "能力图画多少个点",
+				"type" : "slider",
+				"value" : 50,
+				"min" : 20,
+				"max" : 150,
+				"editable" : true
+			},
+			"spotlight" : {
+				"order" : 4,
+				"text" : "自动巡览",
+				"type" : "bool",
+				"value" : true
+			},
+			"pace" : {
+				"order" : 5,
+				"text" : "巡览节奏（数值越大换得越慢）",
+				"type" : "slider",
+				"value" : 100,
+				"min" : 20,
+				"max" : 300,
+				"editable" : true
+			},
+			"accent" : {
+				"order" : 6,
+				"text" : "强调色",
+				"type" : "color",
+				"value" : "0.26 0.52 0.96"
+			},
+			"lights" : {
+				"order" : 7,
+				"text" : "浅色主题",
+				"type" : "bool",
+				"value" : false
+			},
+			"interactive" : {
+				"order" : 8,
+				"text" : "可点模型档案",
+				"type" : "bool",
+				"value" : true
+			}
+		}
+	},
+	"preview" : "preview.jpg",
+	"tags" : [ "Technology", "Abstract" ],
+	"title" : "模型能力图鉴 · Model Atlas",
+	"type" : "web",
+	"version" : 1
+}

@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'last-token/**'
+      - 'model-atlas/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -25,9 +26,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # 站点根就是 last-token/，这样 https://liveldy.github.io/last-token/ 这个地址不用变；
+      # 模型能力图鉴挂在同一站点的 /model-atlas/ 下面。
+      - name: 组装站点
+        run: |
+          mkdir -p _site/model-atlas
+          cp -R last-token/. _site/
+          cp -R model-atlas/. _site/model-atlas/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: last-token
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4

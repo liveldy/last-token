@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>模型能力图鉴 · 能力 × 成本</title>
+<meta name="description" content="把 ZeroEval general 的综合能力和参考成本画成一张图：左边是能力-成本散点，右边是全部 395 个模型的排行榜，点一下互相跳转。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23111827'/%3E%3Ccircle cx='11' cy='21' r='2.4' fill='%234285f4'/%3E%3Ccircle cx='16' cy='15' r='2.4' fill='%2310a37f'/%3E%3Ccircle cx='22' cy='10' r='2.4' fill='%23e0733d'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ========== 氛围层 ========== -->
+<div id="bg" aria-hidden="true">
+  <div id="glow-a" class="glow"></div>
+  <div id="glow-b" class="glow"></div>
+  <div id="dots"></div>
+  <canvas id="grain"></canvas>
+  <div id="vignette"></div>
+</div>
+
+<!-- ========== 顶栏 ========== -->
+<header id="top">
+  <div class="brand">
+    <h1>模型能力图鉴</h1>
+    <p id="sub">ZeroEval general 综合能力 × 参考成本</p>
+  </div>
+  <div id="controls">
+    <button type="button" id="btn-about" class="ctl icon" aria-label="关于与数据来源" aria-haspopup="dialog" title="关于与数据来源">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+        <circle cx="8" cy="3.1" r="1.5"></circle><circle cx="8" cy="8" r="1.5"></circle><circle cx="8" cy="12.9" r="1.5"></circle>
+      </svg>
+    </button>
+    <button type="button" id="btn-theme" class="ctl icon" aria-label="切换明暗主题" title="切换明暗主题">
+      <span data-theme-icon>☾</span>
+    </button>
+  </div>
+</header>
+
+<!-- ========== 主体：左图右榜 ========== -->
+<main id="app">
+
+  <section id="chart-pane" aria-labelledby="chart-title">
+    <div class="pane-head">
+      <div class="head-row">
+        <h2 id="chart-title">能力图</h2>
+        <span class="head-note" id="chart-note"></span>
+      </div>
+      <p class="pane-sub">
+        <b>横轴</b> 参考成本（美元 / 百万 token，输入 : 输出 = 3 : 1）·
+        <b>纵轴</b> 综合能力（ZeroEval general，TrueSkill μ − 3σ）
+      </p>
+      <div id="legend" class="legend"></div>
+    </div>
+    <div id="chart-wrap">
+      <svg id="chart" role="img" aria-label="模型能力与参考成本的散点图"></svg>
+      <div id="tip" role="status" hidden></div>
+    </div>
+    <footer id="chart-foot"></footer>
+  </section>
+
+  <section id="list-pane" aria-labelledby="board-title">
+    <div class="pane-head">
+      <div class="head-row">
+        <h2 id="board-title">排行榜</h2>
+        <span class="head-note" id="board-count"></span>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6">
+          <circle cx="7" cy="7" r="4.6"></circle><path d="M10.4 10.4 14 14"></path>
+        </svg>
+        <input id="search" type="search" placeholder="搜索模型或厂商…" aria-label="搜索模型或厂商" autocomplete="off">
+      </div>
+    </div>
+    <ol id="board"></ol>
+  </section>
+
+</main>
+
+<p id="hint" role="status">
+  <span class="dot" aria-hidden="true"></span>
+  点图上的点跳到榜上那一名 · 点榜单任意一行看详情
+</p>
+
+<!-- ========== 模型详情 ========== -->
+<dialog id="detail" aria-labelledby="d-name">
+  <div class="d-top">
+    <div>
+      <p class="eyebrow" id="d-eyebrow">模型详情</p>
+      <h2 id="d-name">—</h2>
+      <p class="d-org" id="d-org">—</p>
+    </div>
+    <button type="button" id="d-close" class="icon-btn" aria-label="关闭详情">✕</button>
+  </div>
+  <div class="d-body" id="d-body"></div>
+</dialog>
+
+<!-- ========== 关于与来源 ========== -->
+<dialog id="about" aria-labelledby="about-title">
+  <div class="about-top">
+    <h2 id="about-title">关于与数据来源</h2>
+    <button type="button" id="about-close" class="icon-btn" aria-label="关闭">✕</button>
+  </div>
+  <p class="about-lead">
+    左边是按厂商着色的能力-成本散点图，只画综合能力最靠前的那些模型；右边是全部模型的排行榜。
+    两边的序号是同一个：点图上的点会跳到榜上那一名并把它点亮，点榜单的行会打开它的详情。
+  </p>
+
+  <h3>综合能力怎么来的</h3>
+  <p class="about-note">
+    取 ZeroEval / LLM Stats 的 <b>general</b> 分类指数：把各家在各项基准上的成绩放进同一套
+    TrueSkill 模型里比出来的分数，报告值是保守估计 <b>μ − 3σ</b>，所以基准跑得少的模型会被压得低一些，
+    不会靠一两个高分冲上去。
+  </p>
+
+  <h3>参考成本怎么算的</h3>
+  <p class="about-note">
+    横轴是每百万 token 的加权美元价，<b>输入 : 输出 = 3 : 1</b>。输入输出价都取自 ZeroEval 收录的官方标价；
+    它没收录的，退回 OpenRouter 的公开价。缓存命中、思考预算与批量折扣都会让实际账单更低或更高。
+  </p>
+
+  <h3>数据来源</h3>
+  <ul id="about-sources" class="about-sources"></ul>
+  <p class="about-note" id="about-state"></p>
+  <p class="about-note">
+    <button type="button" id="data-status" title="点击重新拉取实时数据">数据加载中…</button>
+  </p>
+
+  <h3>说明</h3>
+  <p class="about-note">
+    非商业的第三方整理，与任何一家模型厂商无关。分数与价格都会随时间变动，
+    本页显示的是打包在工程里的数据快照。
+  </p>
+</dialog>
+
+<script>window.MODEL_ATLAS_WALLPAPER = true;</script>
+<script src="data/models-snapshot.js"></script>
+<script src="data/model-data.js"></script>
+<script src="ambience.js"></script>
+<script src="app.js"></script>
+<script src="wallpaper.js"></script>
+</body>
+</html>
