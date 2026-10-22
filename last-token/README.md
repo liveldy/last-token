@@ -22,6 +22,9 @@ last-token/
 
 同目录的 `../last-token-we` 是同一个页面的 **Wallpaper Engine 壁纸版**（自包含的 WE 工程）。
 
+画里 13 位角色分别站在《最后的晚餐》原作的哪个位子上、手势怎么一一对应，写在
+[`apostle-mapping.md`](apostle-mapping.md) 里。
+
 ## 怎么打开
 
 **直接双击 `index.html`**（`file://`）就能用，快照数据已经打包在 `data/models-snapshot.js` 里。
