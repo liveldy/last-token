@@ -35,7 +35,6 @@
       if (props.glow)          settings.glow      = clamp(props.glow.value / 100, 0, 2);
       if (props.parallax)      settings.parallax  = clamp(props.parallax.value / 100, 0, 2);
       if (props.panorama)      settings.panorama  = !!props.panorama.value;
-      if (props.panspeed)      settings.panspeed  = clamp(props.panspeed.value / 100, 0, 2);
       if (props.dust)          settings.dust      = !!props.dust.value;
       if (props.drift)         settings.drift     = !!props.drift.value;
       if (props.audio)         settings.audio     = !!props.audio.value;

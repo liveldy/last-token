@@ -22,7 +22,14 @@
   overflow: hidden;
   background: #05040a;
   z-index: 0;
+  /* 画面是一整块可拖动的面：交给 Pointer Events 处理，浏览器别自己滚/缩 */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
 }
+#stage.is-dragging { cursor: grabbing; }
+#stage.is-dragging .spot { cursor: grabbing; }
 
 #space {
   position: absolute;
@@ -295,6 +302,7 @@ code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monosp
   position: fixed;
   left: 50%; bottom: 28px;
   transform: translateX(-50%);
+  pointer-events: none;
   z-index: 12;
   display: flex;
   align-items: center;

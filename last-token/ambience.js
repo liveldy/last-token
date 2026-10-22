@@ -9,9 +9,9 @@
      5. 暖光雾 / 冷调  —— 左上角漏光、右下沉入冷色阴影
      6. 跟随鼠标的提灯
      7. 暗角 + 胶片颗粒
-   屏幕比例把画面裁掉太多时（16:9 会切掉左右两侧），画面沿被裁的方向缓慢往返，
-   让人在一段时间里看到整张图；鼠标一动滚动就放慢，静止后恢复。
-   角色热区挂在 #space 里，因此自动跟着这些位移一起走。
+   屏幕比例把画面裁掉太多时（16:9 会切掉左右两侧），按住左键拖动——触摸屏上直接用手指，
+   效果一样——就能把被裁掉的部分拉进视野；松手后画面停在原处，只顺着势头滑一小段。
+   画面不会自己左右移动。角色热区挂在 #space 里，因此自动跟着这些位移一起走。
    ========================================================================== */
 
 (function () {
@@ -22,8 +22,10 @@
   var IMG_ASPECT = 2;        // 原图 2880x1440
   var BASE_ZOOM  = 1.055;    // 基础放大，给视差和呼吸留出余量
   var MOTES_INSET = 0.06;    // #motes 画布四边外扩 6%
-  var PAN_LIMIT  = 0.08;     // 某个方向被裁掉超过 8% 就启用全景滚动
-  var PAN_PERIOD = 96;       // 100% 滚动速度下一个完整往返的秒数
+  var DRAG_SLOP   = 6;       // 指针移动超过这么多像素才算拖动，免得把点击当成拖动
+  var PAN_FRICTION = 0.006;  // 松手滑行时速度每秒衰减到的比例（越小停得越快）
+  var PAN_FOLLOW   = 0.002;  // 画面追向目标位置时每秒剩下的残差
+  var PAN_VMAX     = 900;    // 松手瞬间的速度上限（px/s）
 
   var settings = {
     intensity: 1,
@@ -31,7 +33,6 @@
     glow: 1,
     parallax: 1,
     panorama: true,
-    panspeed: 1,
     dust: true,
     drift: true,
     audio: true,
@@ -83,20 +84,6 @@
   /* ---------- 4. 小工具 ---------- */
 
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
-
-  function smoothstep(x) {
-    x = clamp(x, 0, 1);
-    return x * x * (3 - 2 * x);
-  }
-
-  function panEase(u) {
-    var t = u - Math.floor(u);
-    if (t < 0.06) return -1;
-    if (t < 0.44) return -1 + 2 * smoothstep((t - 0.06) / 0.38);
-    if (t < 0.56) return 1;
-    if (t < 0.94) return 1 - 2 * smoothstep((t - 0.56) / 0.38);
-    return -1;
-  }
 
   function warmCss(alpha) {
     var w = settings.warm;
@@ -311,6 +298,94 @@
 
   window.addEventListener('mouseleave', function () { lanternTarget = 0; }, { passive: true });
 
+  /* ---------- 10a. 拖动画面 ---------- */
+
+  /* 屏幕比例把画面裁掉时（16:9 会切掉左右两侧），按住左键或手指拖动去看被裁掉的部分。
+     用 Pointer Events，鼠标、触摸、触控笔一套写；只认左键，右键留给系统菜单。
+     松手后画面停在原处，只顺着最后的势头滑一小段，绝不自己动。 */
+
+  var panX = 0, panY = 0;       // 画面当前偏移
+  var panTX = 0, panTY = 0;     // 目标偏移（拖动时直接跟着指针走）
+  var panVX = 0, panVY = 0;     // 松手瞬间的速度（px/s），用来做滑行
+  var dragging = false;
+  var dragMove = 0;             // 本次按下累计移动的像素
+  var dragSlop = false;         // 是否已经越过 DRAG_SLOP，够格算拖动
+  var swallowClick = false;     // 拖动结束时吞掉随之而来的那次 click
+  var dragLastX = 0, dragLastY = 0, dragLastT = 0;
+
+  /* 画面能移动的范围：扣掉留给鼠标视差的余量，剩下多少就能拖多少 */
+  function panBounds() {
+    var slackX = Math.max(0, (fitW * zoom - vw) / 2);
+    var slackY = Math.max(0, (fitH * zoom - vh) / 2);
+    var maxX = Math.min(vw * 0.014, slackX * 0.7);
+    var maxY = Math.min(vh * 0.010, slackY * 0.7);
+    return {
+      slackX: slackX, slackY: slackY, maxX: maxX, maxY: maxY,
+      x: Math.max(0, slackX - maxX),
+      y: Math.max(0, slackY - maxY)
+    };
+  }
+
+  function dragBegin(e) {
+    if (!settings.panorama) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;   // 只认鼠标左键
+    if (e.isPrimary === false) return;                          // 多指时只跟第一根手指
+    swallowClick = false;
+    dragging = true;
+    dragSlop = false;
+    dragMove = 0;
+    panVX = panVY = 0;
+    dragLastX = e.clientX;
+    dragLastY = e.clientY;
+    dragLastT = e.timeStamp || performance.now();
+    stage.classList.add('is-dragging');
+  }
+
+  function dragTo(e) {
+    if (!dragging) return;
+    var dx = e.clientX - dragLastX;
+    var dy = e.clientY - dragLastY;
+    dragLastX = e.clientX;
+    dragLastY = e.clientY;
+
+    var t = e.timeStamp || performance.now();
+    var dt = Math.max(1, t - dragLastT) / 1000;
+    dragLastT = t;
+
+    dragMove += Math.abs(dx) + Math.abs(dy);
+    if (!dragSlop && dragMove > DRAG_SLOP) dragSlop = true;
+
+    var B = panBounds();
+    panTX = clamp(panTX + dx, -B.x, B.x);
+    panTY = clamp(panTY + dy, -B.y, B.y);
+    panVX = clamp(panVX * 0.6 + (dx / dt) * 0.4, -PAN_VMAX, PAN_VMAX);
+    panVY = clamp(panVY * 0.6 + (dy / dt) * 0.4, -PAN_VMAX, PAN_VMAX);
+  }
+
+  function dragEnd() {
+    if (!dragging) return;
+    dragging = false;
+    stage.classList.remove('is-dragging');
+    // 松手前就停住不动了，说明不是甩出去的，别让它自己滑
+    if (performance.now() - dragLastT > 90) { panVX = panVY = 0; }
+    if (dragSlop) swallowClick = true;
+    dragSlop = false;
+  }
+
+  /* 拖过一次的那次 click 要吞掉，否则会顺手打开角色档案 */
+  window.addEventListener('click', function (e) {
+    if (!swallowClick) return;
+    swallowClick = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+
+  stage.addEventListener('pointerdown', dragBegin);
+  window.addEventListener('pointermove', dragTo, { passive: true });
+  window.addEventListener('pointerup', dragEnd, { passive: true });
+  window.addEventListener('pointercancel', dragEnd, { passive: true });
+  window.addEventListener('blur', dragEnd);
+
   /* ---------- 10b. 音频（只有 Wallpaper Engine 会提供） ---------- */
 
   var audio = 0;          // 缓动后的能量 0..1
@@ -335,12 +410,10 @@
   var last = performance.now();
   var zoom = BASE_ZOOM;
   var grainTick = 0;
-  var panClock = PAN_PERIOD * 0.25;   // 从画面正中开局，再慢慢向两侧扫
   var lastTX = 0;
-  var panFactor = 0, panAmp = 0;
 
   /* 聚焦：打开某位角色的档案时，把 TA 缓缓挪到画面空闲的一侧，
-     免得被右侧面板挡住；聚焦期间全景滚动暂停，关掉面板后恢复。 */
+     免得被面板挡住；关掉面板后画面就停在这个位置，不会跳回去。 */
   var focusU = null, focusTX = 0, focusTarget = 0;
 
   function focus(u, targetX) {
@@ -349,7 +422,12 @@
     focusTX = lastTX;
   }
 
-  function release() { focusU = null; }
+  function release() {
+    // 把聚焦的偏移交还给拖动偏移，关掉面板后画面停在原处；
+    // 关掉「拖动查看全图」时不留偏移，画面回到正中。
+    if (focusU !== null) { panX = panTX = settings.panorama ? focusTX : 0; }
+    focusU = null;
+  }
 
   function frame(now) {
     requestAnimationFrame(frame);
@@ -372,26 +450,36 @@
     var drift = settings.drift ? 1 : 0;
     zoom = BASE_ZOOM + drift * (0.004 * Math.sin(clock / 39 + 0.4) + 0.002 * Math.sin(clock / 17 + 2.1));
 
-    var slackX = Math.max(0, (fitW * zoom - vw) / 2);
-    var slackY = Math.max(0, (fitH * zoom - vh) / 2);
-    var maxX = Math.min(vw * 0.014, slackX * 0.7);
-    var maxY = Math.min(vh * 0.010, slackY * 0.7);
+    var B = panBounds();
+    var slackX = B.slackX, slackY = B.slackY, maxX = B.maxX, maxY = B.maxY;
     var px = clamp(curX * maxX * settings.parallax, -maxX, maxX);
     var py = clamp(curY * maxY * settings.parallax, -maxY, maxY);
     var driftX = drift * fitW * 0.004 * Math.sin(clock / 61);
     var driftY = drift * fitH * 0.005 * Math.sin(clock / 47 + 1.1);
 
-    panFactor += ((idle > 1.2 ? 1 : 0.12) - panFactor) * (1 - Math.pow(0.2, dt));
-    panClock += dt * panFactor;
-    panAmp += (((settings.panorama && settings.panspeed > 0 && focusU === null) ? 1 : 0) - panAmp) *
-              (1 - Math.pow(0.15, dt));
-    var panX = 0, panY = 0;
-    if (panAmp > 0.001) {
-      var period = PAN_PERIOD / clamp(settings.panspeed, 0.1, 3);
-      var rangeX = Math.max(0, slackX - maxX);
-      var rangeY = Math.max(0, slackY - maxY);
-      if (vw / (fitW * zoom) < 1 - PAN_LIMIT) panX = panEase(panClock / period) * rangeX * panAmp;
-      if (vh / (fitH * zoom) < 1 - PAN_LIMIT) panY = panEase(panClock / period + 0.5) * rangeY * panAmp;
+    /* 拖动：目标位置由指针写；松手后顺着势头滑一小段，然后永远停在那里 */
+    if (!dragging) {
+      if (Math.abs(panVX) > 2 || Math.abs(panVY) > 2) {
+        panTX += panVX * dt;
+        panTY += panVY * dt;
+        var fr = Math.pow(PAN_FRICTION, dt);
+        panVX *= fr;
+        panVY *= fr;
+      } else {
+        panVX = panVY = 0;
+      }
+    }
+    panTX = clamp(panTX, -B.x, B.x);
+    panTY = clamp(panTY, -B.y, B.y);
+    if (panTX <= -B.x || panTX >= B.x) panVX = 0;
+    if (panTY <= -B.y || panTY >= B.y) panVY = 0;
+    if (dragging) {
+      panX = panTX;
+      panY = panTY;
+    } else {
+      var kp = 1 - Math.pow(PAN_FOLLOW, dt);
+      panX += (panTX - panX) * kp;
+      panY += (panTY - panY) * kp;
     }
 
     var tX = clamp(panX + px + driftX, -slackX, slackX);
@@ -464,6 +552,9 @@
     coolEl.style.opacity = clamp(0.55 + 0.4 * settings.intensity, 0, 1).toFixed(3);
     motesCv.style.display = settings.dust ? '' : 'none';
     grainCv.style.opacity = clamp(0.035 + 0.03 * settings.intensity, 0, 0.09).toFixed(3);
+
+    // 关掉「拖动查看全图」就把画面收回正中，别停在半路
+    if (!settings.panorama) { panTX = panX = 0; panVX = panVY = 0; }
   }
 
   /* ---------- 13. 启动 ---------- */
