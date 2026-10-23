@@ -56,7 +56,9 @@ Perplexity、Gemini、Claude、Mistral、GLM、文心一言。页面里一律用
 再拿 [genderswapai.com 的 AI 拟人图鉴](https://genderswapai.com/zh-CN/ai-gijinka) 的立绘逐项核对——
 发色、发型、兽耳、徽章字母（Kimi 的“K”、Mistral 的“M”、GLM 的“Z”、Perplexity 的“P”）、
 手持物（Seed 的工牌挂绳、Qwen 的折扇与香囊、文心一言的蓝色立方体发夹与轮椅）。标定坐标写在
-`data/model-data.js` 的 `CHARACTERS` 里，`band` 是相邻角色之间的中线，热区就由它生成。
+`data/model-data.js` 的 `CHARACTERS` 里：`band` 是相邻角色之间的中线，`top` 是这位角色头顶
+（帽子、猫耳、光环都算）在画面高度上的百分比，下沿则取所有人共用的 `TABLE_LINE`——桌子挡住
+角色的那条线。热区的上下沿就由这两项生成，所以每个框的高度都等于这位角色露出来的高度。
 
 ## 数据是怎么来的
 

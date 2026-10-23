@@ -12,61 +12,68 @@
 
   /* ---------- 1. 角色 ----------
      x / y 是头部中心在原图（2880x1440）上的百分比，由带标尺的放大截图逐个标定；
-     band 是该角色在水平方向上的“列”范围（相邻角色之间的中线），用于生成点击热区。
+     band 是该角色在水平方向上的“列”范围（相邻角色之间的中线）——
+     band 加 top 一起圈出点击热区：band 管左右，top 管上沿。
+     top 是角色头顶（帽子、猫耳、光环这些伸出来的部分也算）在高度上的百分比，
+     逐位量自底图；下沿则是所有人共用的 TABLE_LINE——角色被桌子挡住的那条线。
      形象描述取自 genderswapai.com 图鉴的立绘说明。 */
+
+  /* 桌面远端那条线：站在桌后的角色从它往下就被桌布挡住，
+     因此热区一律收在这里，高度才等于角色露出来的高度。 */
+  var TABLE_LINE = 59.5;
 
   var CHARACTERS = [
     {
       id: 'deepseek', name: 'DeepSeek', org: '深度求索', orgId: 'deepseek',
-      look: '蓝发 · 鲸尾鳍耳与黑白女仆装', x: 10, y: 41, band: [0, 13]
+      look: '蓝发 · 鲸尾鳍耳与黑白女仆装', x: 10, y: 41, band: [0, 13], top: 31.4
     },
     {
       id: 'qwen', name: 'Qwen', org: '阿里通义千问', orgId: 'qwen',
-      look: '紫发与中国风 · 圆形发饰、手持折扇与香囊', x: 16, y: 40, band: [13, 18.8]
+      look: '紫发与中国风 · 圆形发饰、手持折扇与香囊', x: 16, y: 40, band: [13, 18.8], top: 33.6
     },
     {
       id: 'llama', name: 'Llama', org: 'Meta', orgId: 'meta',
-      look: '白色猫耳与宽松外套 · 蓝色“∞”发夹、毛球抽绳', x: 21.5, y: 41, band: [18.8, 25.3]
+      look: '白色猫耳与宽松外套 · 蓝色“∞”发夹、毛球抽绳', x: 21.5, y: 41, band: [18.8, 25.3], top: 34.8
     },
     {
       id: 'seed', name: 'Seed', org: '字节跳动 · 豆包', orgId: 'bytedance',
-      look: '紫蓝渐变长发与青色圆环 · 工牌挂绳与记录板', x: 29, y: 44, band: [25.3, 32.3]
+      look: '紫蓝渐变长发与青色圆环 · 工牌挂绳与记录板', x: 29, y: 44, band: [25.3, 32.3], top: 39.8
     },
     {
       id: 'grok', name: 'Grok', org: 'xAI', orgId: 'xai',
-      look: '金发与黑色礼服 · 蝠翼、新月与行星环王冠', x: 35.5, y: 43, band: [32.3, 38]
+      look: '金发与黑色礼服 · 蝠翼、新月与行星环王冠', x: 35.5, y: 43, band: [32.3, 38], top: 36.5
     },
     {
       id: 'kimi', name: 'Kimi', org: '月之暗面', orgId: 'moonshotai',
-      look: '银紫长发与非对称女仆装 · “K”徽章、彩虹缎带', x: 40.5, y: 43, band: [38, 44.5]
+      look: '银紫长发与非对称女仆装 · “K”徽章、彩虹缎带', x: 40.5, y: 43, band: [38, 44.5], top: 38.5
     },
     {
       id: 'gpt', name: 'GPT', org: 'OpenAI', orgId: 'openai',
-      look: '白发精灵与龙角 · 白衣主位（这幅画的中心）', x: 48.5, y: 41, band: [44.5, 54.8]
+      look: '白发精灵与龙角 · 白衣主位（这幅画的中心）', x: 48.5, y: 41, band: [44.5, 54.8], top: 30.9
     },
     {
       id: 'perplexity', name: 'Perplexity', org: 'Perplexity', orgId: 'perplexity',
-      look: '青绿长发与“P”耳机 · 绿衣法师、星形法杖', x: 60.5, y: 42, band: [54.8, 62.8]
+      look: '青绿长发与“P”耳机 · 绿衣法师、星形法杖', x: 60.5, y: 42, band: [54.8, 62.8], top: 35
     },
     {
       id: 'gemini', name: 'Gemini', org: 'Google', orgId: 'google',
-      look: '紫发猫耳与异色瞳 · 蓝色四角星发饰', x: 65, y: 44, band: [62.8, 68]
+      look: '紫发猫耳与异色瞳 · 蓝色四角星发饰', x: 65, y: 44, band: [62.8, 68], top: 36.4
     },
     {
       id: 'claude', name: 'Claude', org: 'Anthropic', orgId: 'anthropic',
-      look: '橘发与花朵发饰 · 橘色雏菊、白橘长裙', x: 71.5, y: 42, band: [68, 77]
+      look: '橘发与花朵发饰 · 橘色雏菊、白橘长裙', x: 71.5, y: 42, band: [68, 77], top: 35.5
     },
     {
       id: 'mistral', name: 'Mistral', org: 'Mistral AI', orgId: 'mistral',
-      look: '戴红帽的金发法师 · 红色宽檐帽与“M”徽章', x: 82.5, y: 41, band: [77, 85.5]
+      look: '戴红帽的金发法师 · 红色宽檐帽与“M”徽章', x: 82.5, y: 41, band: [77, 85.5], top: 32.1
     },
     {
       id: 'glm', name: 'GLM', org: '智谱 Z.ai', orgId: 'zai-org',
-      look: '黑发猫耳与黑白哥特装 · 多个“Z”徽章', x: 88.5, y: 42, band: [85.5, 91.8]
+      look: '黑发猫耳与黑白哥特装 · 多个“Z”徽章', x: 88.5, y: 42, band: [85.5, 91.8], top: 35.3
     },
     {
       id: 'wenxin', name: '文心一言', org: '百度', orgId: 'baidu',
-      look: '深蓝长发与中式衣裙 · 蓝色立方体发夹、轮椅', x: 95, y: 43, band: [91.8, 100]
+      look: '深蓝长发与中式衣裙 · 蓝色立方体发夹、轮椅', x: 95, y: 43, band: [91.8, 100], top: 38.3
     }
   ];
 
@@ -294,6 +301,7 @@
 
   var api = {
     CHARACTERS: CHARACTERS,
+    TABLE_LINE: TABLE_LINE,
     BENCHMARKS: BENCHMARKS,
     WORKLOADS: WORKLOADS,
     SOURCES: SOURCES,

@@ -51,8 +51,8 @@
 
   /* ---------- 3. 小工具 ---------- */
 
-  var HOTSPOT_TOP = 27.5;      // 热区上沿（原图百分比）
-  var HOTSPOT_BOTTOM = 58.5;   // 热区下沿
+  var HOTSPOT_TOP = 27.5;      // 兜底热区上沿（原图百分比）
+  var HOTSPOT_BOTTOM = 58.5;   // 兜底热区下沿
 
   function el(tag, cls, text) {
     var n = document.createElement(tag);
@@ -112,17 +112,33 @@
 
   /* ---------- 4. 热区 ---------- */
 
+  /* 热区的上下沿来自 data/model-data.js 的标定：上沿是角色自己的 top——头顶连
+     帽子、猫耳、光环都算；下沿是所有人共用的一条桌沿 TABLE_LINE。标定读不到就
+     退回一个盖住整张桌子的兜底区间。 */
+  function verticalRange(id) {
+    var list = MD.CHARACTERS || [];
+    var line = MD.TABLE_LINE;
+    for (var i = 0; i < list.length; i++) {
+      var def = list[i];
+      if (def.id !== id) continue;
+      if (def.top != null && line != null && line > def.top) return { top: def.top, bottom: line };
+      break;
+    }
+    return { top: HOTSPOT_TOP, bottom: HOTSPOT_BOTTOM };
+  }
+
   function buildHotspots() {
     hotspots.textContent = '';
     state.data.characters.forEach(function (c, i) {
+      var v = verticalRange(c.id);
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'spot';
       b.dataset.char = c.id;
       b.style.left = (c.band[0] + 0.4) + '%';
       b.style.width = (c.band[1] - c.band[0] - 0.8) + '%';
-      b.style.top = HOTSPOT_TOP + '%';
-      b.style.height = (HOTSPOT_BOTTOM - HOTSPOT_TOP) + '%';
+      b.style.top = v.top + '%';
+      b.style.height = (v.bottom - v.top) + '%';
       b.setAttribute('aria-label',
         c.name + '（' + c.org + '）—— 共 ' + c.versionCount + ' 个版本，查看综合能力与参考成本');
       b.appendChild(el('span', 'spot-tag', c.name));
