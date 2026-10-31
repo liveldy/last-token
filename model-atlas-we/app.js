@@ -157,9 +157,20 @@
 
   function xLabel(v) { return '$' + (v < 1 ? v.toFixed(2) : String(v)); }
 
+  /* 画布量的是 SVG 自己的布局盒，不是 #chart-wrap —— wrap 带 padding（左右 12、上 4），
+     拿 clientWidth/Height 会比 SVG 实际宽高多出这些，viewBox 就会偏大、图被按比例缩窄。
+     用 clientWidth 减去 padding 来算，transform（手机竖屏整页旋转）也不影响它。 */
+  function plotBox() {
+    var cs = window.getComputedStyle(wrapEl);
+    var w = wrapEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var h = wrapEl.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    return { w: Math.max(240, Math.round(w)), h: Math.max(200, Math.round(h)) };
+  }
+
   function renderChart() {
-    var W = Math.max(240, wrapEl.clientWidth);
-    var H = Math.max(200, wrapEl.clientHeight);
+    var box = plotBox();
+    var W = box.w, H = box.h;
+    state.chartSize = box;
     chartEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
     chartEl.setAttribute('width', W);
     chartEl.setAttribute('height', H);
@@ -1067,9 +1078,10 @@
     state.selectedId = null;
     state.org = null;
     indexData();
-    renderChart();
+    /* 图例与页脚先搭好再画图：它们的高度决定 #chart-wrap 还剩多少地方 */
     renderBoard();
     renderFoot();
+    renderChart();
     renderAbout();
   }
 
@@ -1148,11 +1160,26 @@
     if (state.selectedId) setSelected(null, {});
   });
 
-  var resizeTimer = null;
-  window.addEventListener('resize', function () {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(renderChart, 180);
-  }, { passive: true });
+  /* 画布尺寸变了就按新尺寸重画：换图例（厂商筛选）、拉实时数据、字体到位、手机转屏、
+     排行榜抽屉收放都会改动 #chart-wrap 的高度，只靠 window.resize 是抓不到的。 */
+  var chartTimer = null;
+
+  function scheduleChart(delay) {
+    clearTimeout(chartTimer);
+    chartTimer = setTimeout(renderChart, delay == null ? 120 : delay);
+  }
+
+  function chartSizeChanged() {
+    var box = plotBox();
+    return !state.chartSize || box.w !== state.chartSize.w || box.h !== state.chartSize.h;
+  }
+
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(function () {
+      if (chartSizeChanged()) scheduleChart();
+    }).observe(wrapEl);
+  }
+  window.addEventListener('resize', function () { scheduleChart(180); }, { passive: true });
 
   /* ---------- 12. 壁纸模式 ---------- */
 
@@ -1228,9 +1255,11 @@
 
   /* ---------- 13. 启动 ---------- */
 
-  renderChart();
+  /* 先把榜单、图例与页脚搭好，再画图：图例与页脚的高度决定 #chart-wrap 还剩多少地方，
+     反过来的话首屏会按偏大的画布画，图被按比例缩窄，点一下别处重画才恢复。 */
   renderBoard();
   renderFoot();
+  renderChart();
   renderAbout();
   setStatus(WALLPAPER
     ? '快照数据 · ' + when(state.data.snapshotAt) + '（壁纸版用工程内置数据，不联网）'
