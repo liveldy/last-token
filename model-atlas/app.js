@@ -675,6 +675,36 @@
 
   var flashTimer = null;
 
+  /* 只滚 #board 自己，不用 scrollIntoView —— 它会连同文档一起滚：窄屏时 #list-pane 是移出屏幕的
+     固定抽屉，手机竖屏整页又转过 90°，一滚看上去就是整页右移、图跑出画面。
+     也不能拿 getBoundingClientRect 算：整页转过 90° 后屏幕上的纵向差对应的其实是布局空间的横轴，
+     所以改用 offsetTop 链条（不受 transform 影响）算出这一行在榜单内容里的位置。 */
+  function docTop(node) {
+    var y = 0;
+    for (var n = node; n; n = n.offsetParent) y += n.offsetTop;
+    return y;
+  }
+
+  function scrollBoardTo(btn, center) {
+    var y = docTop(btn) - docTop(boardEl);
+    var h = btn.offsetHeight;
+    var view = boardEl.clientHeight;
+    var target;
+    if (center) {
+      target = y - (view - h) / 2;
+    } else if (y < boardEl.scrollTop) {
+      target = y;
+    } else if (y + h > boardEl.scrollTop + view) {
+      target = y + h - view;
+    } else {
+      return;
+    }
+    boardEl.scrollTo({
+      top: Math.max(0, Math.min(target, boardEl.scrollHeight - view)),
+      behavior: 'smooth'
+    });
+  }
+
   function setSelected(id, opt) {
     opt = opt || {};
     var prev = state.selectedId;
@@ -684,14 +714,7 @@
     var r = rows[id];
     if (r) {
       r.btn.classList.add('is-sel');
-      if (opt.scroll) {
-        r.btn.scrollIntoView({ block: 'center', behavior: opt.instant ? 'auto' : 'smooth' });
-      } else {
-        var box = boardEl.getBoundingClientRect(), rb = r.btn.getBoundingClientRect();
-        if (rb.top < box.top || rb.bottom > box.bottom) {
-          r.btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }
-      }
+      scrollBoardTo(r.btn, !!opt.scroll);
       if (opt.flash) {
         r.btn.classList.remove('is-flash');
         void r.btn.offsetWidth;
