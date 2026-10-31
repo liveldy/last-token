@@ -30,7 +30,9 @@
     org: null,
     query: '',
     live: false,
-    frontier: true
+    frontier: true,
+    /* 能力图的缩放：k 是倍率，u/v 是视野中心（都按整张图的 0..1 归一化，v 从上往下数） */
+    view: { k: 1, u: 0.5, v: 0.5 }
   };
 
   if (!state.data) {
@@ -187,7 +189,24 @@
     var padY = Math.max(1.2, (yMax - yMin) * 0.12);
     var y0 = yMin - padY, y1 = yMax + padY;
 
+    /* 缩放过就只取整张图里的一段定义域：刻度、中位线、点位、标签全按这段重算，
+       而不是把整张图连字一起放大——字还是那么大，能装下的点却少了、看得更细。 */
+    var fv = 1 / state.view.k;
+    var uLo = state.view.u - fv / 2, vLo = state.view.v - fv / 2;
+    var fullX0 = x0, fullX1 = x1, fullY0 = y0, fullY1 = y1;
+    x0 = fullX0 + (fullX1 - fullX0) * uLo;
+    x1 = x0 + (fullX1 - fullX0) * fv;
+    y1 = fullY1 - (fullY1 - fullY0) * vLo;
+    y0 = y1 - (fullY1 - fullY0) * fv;
+
     var iw = W - CH.l - CH.r, ih = H - CH.t - CH.b;
+
+    /* 视野外的点、标签、斩杀区域都裁在绘图区里，别画到坐标轴和页头上 */
+    var defs = svg('defs');
+    var plotClip = svg('clipPath', { id: 'plot-clip' });
+    plotClip.appendChild(svg('rect', { x: CH.l, y: CH.t, width: iw, height: ih }));
+    defs.appendChild(plotClip);
+    chartEl.appendChild(defs);
     var sx = function (c) { return CH.l + (Math.log10(c) - x0) / (x1 - x0) * iw; };
     var sy = function (s) { return CH.t + (y1 - s) / (y1 - y0) * ih; };
     var geo = { sx: sx, sy: sy, l: CH.l, t: CH.t, r: CH.l + iw, b: CH.t + ih };
@@ -230,27 +249,32 @@
 
     var medCost = median(costs);
     var medScore = median(scores);
-    var mx = sx(medCost);
-    chartEl.appendChild(svg('line', { class: 'med-line', x1: mx, y1: CH.t, x2: mx, y2: CH.t + ih }));
-    chartEl.appendChild(svg('line', { class: 'med-line', x1: CH.l, y1: sy(medScore), x2: CH.l + iw, y2: sy(medScore) }));
-    var mtx = svg('text', { class: 'med-text', x: mx + 4, y: CH.t + 10 });
-    mtx.textContent = '中位成本 ' + xLabel(Number(medCost.toFixed(3)));
-    chartEl.appendChild(mtx);
-    var mty = svg('text', { class: 'med-text', x: CH.l + iw - 4, y: sy(medScore) - 4, 'text-anchor': 'end' });
-    mty.textContent = '中位能力 ' + medScore.toFixed(1);
-    chartEl.appendChild(mty);
+    var mx = sx(medCost), my = sy(medScore);
+    /* 放大之后中位线可能跑到视野外，那就不画，免得贴着坐标轴外侧跑 */
+    if (mx >= CH.l && mx <= CH.l + iw) {
+      chartEl.appendChild(svg('line', { class: 'med-line', x1: mx, y1: CH.t, x2: mx, y2: CH.t + ih }));
+      var mtx = svg('text', { class: 'med-text', x: mx + 4, y: CH.t + 10 });
+      mtx.textContent = '中位成本 ' + xLabel(Number(medCost.toFixed(3)));
+      chartEl.appendChild(mtx);
+    }
+    if (my >= CH.t && my <= CH.t + ih) {
+      chartEl.appendChild(svg('line', { class: 'med-line', x1: CH.l, y1: my, x2: CH.l + iw, y2: my }));
+      var mty = svg('text', { class: 'med-text', x: CH.l + iw - 4, y: my - 4, 'text-anchor': 'end' });
+      mty.textContent = '中位能力 ' + medScore.toFixed(1);
+      chartEl.appendChild(mty);
+    }
 
     /* 斩杀区域的底色铺在点下面，线和徽标最后画，压在点上 */
-    var gKillShade = svg('g', { class: 'kill-shade' });
+    var gKillShade = svg('g', { class: 'kill-shade', 'clip-path': 'url(#plot-clip)' });
     chartEl.appendChild(gKillShade);
 
     /* 优势曲线也铺在点下面 */
-    var gFrontier = svg('g', { class: 'frontier' });
+    var gFrontier = svg('g', { class: 'frontier', 'clip-path': 'url(#plot-clip)' });
     chartEl.appendChild(gFrontier);
     if (state.frontier) drawFrontier(gFrontier, geo);
 
     /* 点：按能力从低到高画，强者压在上面 */
-    var gPt = svg('g');
+    var gPt = svg('g', { 'clip-path': 'url(#plot-clip)' });
     var sorted = plot.slice().sort(function (a, b) { return a.score - b.score; });
     var nodes = {};
     sorted.forEach(function (m) {
@@ -285,7 +309,7 @@
     var placed = [];
     var pts = Object.keys(nodes).map(function (k) { return nodes[k]; })
       .sort(function (a, b) { return b.score - a.score; });
-    var gLabel = svg('g');
+    var gLabel = svg('g', { 'clip-path': 'url(#plot-clip)' });
     chartEl.appendChild(gLabel);
 
     var PT_R = 5.5;
@@ -332,10 +356,10 @@
     state.medLines = { cost: medCost, score: medScore };
     state.geo = geo;
     /* 优势曲线的名字放在最上层，免得被点的标签压住 */
-    var gFrontierLabel = svg('g', { class: 'frontier-names' });
+    var gFrontierLabel = svg('g', { class: 'frontier-names', 'clip-path': 'url(#plot-clip)' });
     chartEl.appendChild(gFrontierLabel);
     if (state.frontier) drawFrontierLabel(gFrontierLabel, geo);
-    var gKillMarks = svg('g', { class: 'kill-marks' });
+    var gKillMarks = svg('g', { class: 'kill-marks', 'clip-path': 'url(#plot-clip)' });
     chartEl.appendChild(gKillMarks);
     state.killLayer = { shade: gKillShade, marks: gKillMarks };
     paintChartSelection();
@@ -581,6 +605,228 @@
       renderChart();
     });
   }
+
+  /* ---------- 3e. 缩放与平移 ----------
+     图可以放大看细节：滚轮、双指捏合、图头的 − / + 都能缩放；放大后按住拖动就平移，
+     中间那个倍率按钮点一下复原。视野只记「倍率 + 中心」，重画时按它裁一段定义域，
+     坐标轴刻度、中位线、斩杀线、标签全都跟着重算——不是把整张图连字一起放大。 */
+
+  var ZOOM_MIN = 1, ZOOM_MAX = 8, ZOOM_STEP = 1.6;
+
+  var zoomOutBtn = $('btn-zoom-out');
+  var zoomInBtn = $('btn-zoom-in');
+  var zoomResetBtn = $('btn-zoom-reset');
+
+  /* 视野中心别跑出图外：倍率 k 时半宽是 1/(2k) */
+  function clampView() {
+    var half = 0.5 / state.view.k;
+    state.view.u = Math.min(Math.max(state.view.u, half), 1 - half);
+    state.view.v = Math.min(Math.max(state.view.v, half), 1 - half);
+  }
+
+  function paintZoom() {
+    var k = state.view.k, zoomed = k > 1.005;
+    if (zoomResetBtn) {
+      zoomResetBtn.textContent = zoomed ? k.toFixed(1) + '×' : '1×';
+      zoomResetBtn.dataset.zoomed = zoomed ? 'true' : 'false';
+      zoomResetBtn.title = zoomed ? '复原：回到整张图（当前 ' + k.toFixed(1) + '×）' : '已经是整张图';
+      zoomResetBtn.setAttribute('aria-label', zoomed ? '复原能力图，当前 ' + k.toFixed(1) + ' 倍' : '复原能力图');
+    }
+    if (zoomOutBtn) zoomOutBtn.disabled = !zoomed;
+    if (zoomInBtn) zoomInBtn.disabled = k >= ZOOM_MAX - 1e-6;
+    document.body.classList.toggle('chart-zoomed', zoomed);
+  }
+
+  /* 拖动时一帧最多重画一次 */
+  var zoomFrame = 0;
+  function paintView() {
+    paintZoom();
+    if (zoomFrame) return;
+    zoomFrame = requestAnimationFrame(function () { zoomFrame = 0; renderChart(); });
+  }
+
+  function setView(k, u, v) {
+    state.view.k = Math.min(Math.max(k, ZOOM_MIN), ZOOM_MAX);
+    if (u != null) state.view.u = u;
+    if (v != null) state.view.v = v;
+    clampView();
+    paintView();
+  }
+
+  /* 以 (u,v) 为锚点缩放：那一点在屏幕上原地不动，缩放才跟手 */
+  function zoomAt(k2, u, v) {
+    k2 = Math.min(Math.max(k2, ZOOM_MIN), ZOOM_MAX);
+    var f = 1 / state.view.k, f2 = 1 / k2;
+    var fx = (u - (state.view.u - f / 2)) / f;
+    var fy = (v - (state.view.v - f / 2)) / f;
+    state.view.k = k2;
+    state.view.u = u + (0.5 - fx) * f2;
+    state.view.v = v + (0.5 - fy) * f2;
+    clampView();
+    paintView();
+  }
+
+  function resetView() {
+    state.view.k = 1;
+    state.view.u = 0.5;
+    state.view.v = 0.5;
+    paintView();
+  }
+
+  /* 屏幕坐标 → 绘图区的归一化坐标。getScreenCTM 把祖先的 CSS 变换也算进去，
+     手机竖屏整页转过 90° 也能对上；拿不到就退回按矩形等比换算。 */
+  function plotUv(clientX, clientY) {
+    var g = state.geo;
+    if (!g) return null;
+    var x, y;
+    var ctm = chartEl.getScreenCTM ? chartEl.getScreenCTM() : null;
+    if (ctm) {
+      var p = chartEl.createSVGPoint();
+      p.x = clientX;
+      p.y = clientY;
+      p = p.matrixTransform(ctm.inverse());
+      x = p.x;
+      y = p.y;
+    } else {
+      var r = chartEl.getBoundingClientRect();
+      var size = state.chartSize || { w: 1, h: 1 };
+      x = (clientX - r.left) / (r.width || 1) * size.w;
+      y = (clientY - r.top) / (r.height || 1) * size.h;
+    }
+    return { u: (x - g.l) / (g.r - g.l), v: (y - g.t) / (g.b - g.t) };
+  }
+
+  function clamp01(n) { return Math.min(Math.max(n, 0), 1); }
+
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', function () {
+      zoomAt(state.view.k * ZOOM_STEP, state.view.u, state.view.v);
+    });
+  }
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', function () {
+      zoomAt(state.view.k / ZOOM_STEP, state.view.u, state.view.v);
+    });
+  }
+  if (zoomResetBtn) zoomResetBtn.addEventListener('click', resetView);
+
+  chartEl.addEventListener('wheel', function (e) {
+    var p = plotUv(e.clientX, e.clientY);
+    if (!p) return;
+    e.preventDefault();
+    var f = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.06 : 0.0022));
+    zoomAt(state.view.k * f, clamp01(p.u), clamp01(p.v));
+  }, { passive: false });
+
+  /* 拖动平移、双指捏合：统一走指针事件，鼠标与触屏一套代码 */
+  var pointers = {};
+  var dragAt = null;     /* 单指/鼠标拖动：上一次的屏幕坐标 */
+  var pinchAt = null;    /* 双指：起始距离、中点、锚点与当时的视野 */
+  var dragMoved = false; /* 拖动过就不再当成“点了某个点” */
+
+  function pointerList() {
+    return Object.keys(pointers).map(function (id) { return pointers[id]; });
+  }
+
+  function dist2(a, b) {
+    var dx = a.x - b.x, dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function startPinch() {
+    var two = pointerList();
+    if (two.length < 2) { pinchAt = null; return; }
+    var mid = { x: (two[0].x + two[1].x) / 2, y: (two[0].y + two[1].y) / 2 };
+    var p = plotUv(mid.x, mid.y);
+    Object.keys(pointers).forEach(capturePointer);
+    pinchAt = {
+      d: Math.max(1, dist2(two[0], two[1])),
+      mid: mid,
+      au: p ? p.u : 0.5,
+      av: p ? p.v : 0.5,
+      k: state.view.k,
+      u: state.view.u,
+      v: state.view.v
+    };
+  }
+
+  /* 别在 pointerdown 就抓指针：一抓，浏览器就把随后的 click 派给 #chart 而不是底下的点，
+     单击点选就失灵了。等真的开始拖、或者开始捏合时再抓。 */
+  function capturePointer(id) {
+    try { chartEl.setPointerCapture(id); } catch (err) { /* 忽略 */ }
+  }
+
+  chartEl.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    dragMoved = false;
+    if (Object.keys(pointers).length === 1) {
+      dragAt = { x: e.clientX, y: e.clientY };
+      pinchAt = null;
+    } else {
+      dragAt = null;
+      capturePointer(e.pointerId);
+      startPinch();
+    }
+  });
+
+  chartEl.addEventListener('pointermove', function (e) {
+    if (!pointers[e.pointerId]) return;
+    pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+    var g = state.geo;
+    if (!g) return;
+    var plotW = g.r - g.l, plotH = g.b - g.t;
+
+    if (pinchAt && Object.keys(pointers).length >= 2) {
+      var two = pointerList();
+      var mid = { x: (two[0].x + two[1].x) / 2, y: (two[0].y + two[1].y) / 2 };
+      var k2 = Math.min(Math.max(pinchAt.k * dist2(two[0], two[1]) / pinchAt.d, ZOOM_MIN), ZOOM_MAX);
+      var f0 = 1 / pinchAt.k, f2 = 1 / k2;
+      var fx = (pinchAt.au - (pinchAt.u - f0 / 2)) / f0;
+      var fy = (pinchAt.av - (pinchAt.v - f0 / 2)) / f0;
+      /* 两指中点在图上钉住，再叠加整体挪动带来的平移 */
+      setView(
+        k2,
+        pinchAt.au + (0.5 - fx) * f2 - (mid.x - pinchAt.mid.x) / plotW * f2,
+        pinchAt.av + (0.5 - fy) * f2 - (mid.y - pinchAt.mid.y) / plotH * f2
+      );
+      dragMoved = true;
+      return;
+    }
+
+    if (!dragAt) return;
+    if (state.view.k <= ZOOM_MIN + 1e-6) return; /* 没放大就没得拖 */
+    var dx = e.clientX - dragAt.x, dy = e.clientY - dragAt.y;
+    if (!dragMoved && Math.abs(dx) + Math.abs(dy) < 4) return;
+    dragMoved = true;
+    capturePointer(e.pointerId);
+    document.body.classList.add('chart-panning');
+    var f = 1 / state.view.k;
+    setView(state.view.k, state.view.u - dx / plotW * f, state.view.v - dy / plotH * f);
+    dragAt = { x: e.clientX, y: e.clientY };
+  });
+
+  function endPointer(e) {
+    delete pointers[e.pointerId];
+    try { chartEl.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+    document.body.classList.remove('chart-panning');
+    var rest = pointerList();
+    if (rest.length >= 2) { startPinch(); return; }
+    pinchAt = null;
+    dragAt = rest.length === 1 ? { x: rest[0].x, y: rest[0].y } : null;
+  }
+  chartEl.addEventListener('pointerup', endPointer);
+  chartEl.addEventListener('pointercancel', endPointer);
+
+  /* 拖完浏览器会补一个 click，别让它顺手把底下的点选中 */
+  chartEl.addEventListener('click', function (e) {
+    if (!dragMoved) return;
+    dragMoved = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }, true);
+
+  paintZoom();
 
   function paintChartSelection() {
     if (!state.chartNodes) return;

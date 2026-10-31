@@ -287,6 +287,38 @@ body.no-motion #dots { animation: none; }
   background: var(--accent-hex);
   border-color: var(--accent-hex);
 }
+
+/* 图头的缩放按钮组：− 1× +，中间那个同时当倍率读数与复原键 */
+.zoom {
+  display: inline-flex;
+  align-items: stretch;
+  height: 22px;
+  border-radius: 9999px;
+  border: 1px solid var(--control-border);
+  overflow: hidden;
+}
+.zoom-btn {
+  border: 0;
+  background: none;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  height: 100%;
+  min-width: 22px;
+  padding: 0 6px;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease), color 150ms var(--ease);
+}
+.zoom-btn + .zoom-btn { border-left: 1px solid var(--control-border); }
+.zoom-btn:hover { background: var(--surface-2); color: var(--fg); }
+.zoom-btn:disabled { color: var(--fg-faint); opacity: .5; cursor: default; background: none; }
+.zoom-reset { min-width: 42px; font-variant-numeric: tabular-nums; }
+.zoom-reset[data-zoomed="true"] {
+  color: var(--fg);
+  background: rgb(var(--accent) / .10);
+}
+.zoom-reset[data-zoomed="true"]:hover { background: rgb(var(--accent) / .18); }
 .pane-sub {
   margin-top: 5px;
   font-size: 11.5px;
@@ -340,7 +372,10 @@ body.no-motion #dots { animation: none; }
   min-height: 0;
   padding: 4px 12px 0;
 }
-#chart { display: block; width: 100%; height: 100%; }
+#chart { display: block; width: 100%; height: 100%; touch-action: none; }
+/* 放大之后整张图可以拖着走：光标给个抓手，拖的时候换成抓紧 */
+body.chart-zoomed #chart { cursor: grab; }
+body.chart-panning, body.chart-panning #chart { cursor: grabbing; }
 
 .gl { stroke: var(--grid); stroke-width: 1; stroke-dasharray: 2 3; }
 .ax { stroke: var(--control-border); stroke-width: 1; }
