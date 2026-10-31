@@ -203,6 +203,9 @@ body.no-motion #dots { animation: none; }
 .ctl.icon { width: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
 #btn-theme { font-size: 15px; }
 
+/* 排行榜抽屉与它的遮罩只在移动端出现：桌面端图与榜并排，用不到这个开关 */
+#btn-shelf, #shelf-scrim { display: none; }
+
 /* ========== 四、主体：左图右榜 ========== */
 
 #app {
@@ -907,9 +910,55 @@ table.price .total { font-weight: 600; }
 
 @media (max-width: 900px) {
   :root { --top-h: 56px; }
-  #app { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(260px, 52vh) minmax(0, 1fr); }
-  #list-pane { border-left: 0; border-top: 1px solid var(--border); }
+
+  /* 图占满整屏，排行榜收进右侧抽屉，抽屉的开合靠顶栏那个按钮 */
+  #app { grid-template-columns: minmax(0, 1fr); }
+  #btn-shelf { display: inline-flex; }
+
+  #list-pane {
+    position: fixed;
+    top: var(--top-h);
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+    width: min(88vw, 400px);
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform 240ms var(--ease), visibility 0s 240ms;
+  }
+  body.shelf-open #list-pane {
+    transform: none;
+    visibility: visible;
+    transition: transform 240ms var(--ease), visibility 0s;
+  }
+
+  #shelf-scrim {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--top-h);
+    bottom: 0;
+    z-index: 8;
+    background: rgb(0 0 0 / .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 240ms var(--ease);
+  }
+  body.shelf-open #shelf-scrim { opacity: 1; pointer-events: auto; }
+  body.shelf-open #hint { display: none; }
+
   .pane-head { padding: 12px 14px 10px; }
+  /* 窄屏放不下就换行：窗口再窄也不横着溢出 */
+  .head-row { flex-wrap: wrap; row-gap: 6px; }
+  .head-tools { flex-wrap: wrap; justify-content: flex-end; row-gap: 6px; margin-left: auto; }
+  .head-note { white-space: normal; }
+  /* 厂商图例改成一行横滑，把高度让给图 */
+  .legend { flex-wrap: nowrap; overflow-x: auto; margin-top: 6px; scrollbar-width: none; }
+  .legend::-webkit-scrollbar { display: none; }
+  .legend button { flex: 0 0 auto; white-space: nowrap; }
   #chart-wrap { padding: 2px 4px 0; }
   #chart-foot { padding: 6px 14px 10px; }
   .row { padding-right: 12px; }
@@ -917,6 +966,23 @@ table.price .total { font-weight: 600; }
   .d-body { padding: 16px 16px 20px; }
   .d-top { padding: 16px 16px 12px; }
   #about { padding: 18px 16px 20px; }
+}
+
+/* 顶栏挤不下副标题时先把它收掉，三个按钮要留着 */
+@media (max-width: 560px) {
+  #top { padding: 0 12px; gap: 10px; }
+  #controls { gap: 6px; }
+  #sub { display: none; }
+}
+
+/* 横屏手机这种矮窗口：头部与页脚压扁，把高度让给图 */
+@media (max-width: 900px) and (max-height: 520px) {
+  :root { --top-h: 46px; }
+  .pane-head { padding: 8px 12px 6px; }
+  .pane-sub { display: none; }
+  #chart-foot { padding: 4px 12px 6px; }
+  #chart-foot .chips { display: none; }
+  #hint { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -26,6 +26,11 @@
     <p id="sub">ZeroEval general 综合能力 × 参考成本</p>
   </div>
   <div id="controls">
+    <button type="button" id="btn-shelf" class="ctl icon" aria-label="打开排行榜" aria-controls="list-pane" aria-expanded="false" title="打开排行榜">
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <path d="M3 4.2h10M3 8h10M3 11.8h6"></path>
+      </svg>
+    </button>
     <button type="button" id="btn-about" class="ctl icon" aria-label="关于与数据来源" aria-haspopup="dialog" title="关于与数据来源">
       <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
         <circle cx="8" cy="3.1" r="1.5"></circle><circle cx="8" cy="8" r="1.5"></circle><circle cx="8" cy="12.9" r="1.5"></circle>
@@ -82,6 +87,9 @@
   </section>
 
 </main>
+
+<!-- 移动端：排行榜抽屉打开时，点这块半透明的地方收回去 -->
+<div id="shelf-scrim" aria-hidden="true"></div>
 
 <p id="hint" role="status">
   <span class="dot" aria-hidden="true"></span>

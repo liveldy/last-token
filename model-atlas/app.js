@@ -184,9 +184,13 @@
     /* 网格 + 刻度 */
     var gGrid = svg('g');
     var xt = X_TICKS.filter(function (v) { return Math.log10(v) >= x0 && Math.log10(v) <= x1; });
+    var lastTickX = -1e9;
     xt.forEach(function (v) {
       var x = sx(v);
       gGrid.appendChild(svg('line', { class: 'gl', x1: x, y1: CH.t, x2: x, y2: CH.t + ih }));
+      /* 窄屏上刻度挤在一起就不写字，只留网格线 */
+      if (x - lastTickX < 42) return;
+      lastTickX = x;
       var t = svg('text', { class: 'tk', x: x, y: CH.t + ih + 15, 'text-anchor': 'middle' });
       t.textContent = xLabel(v);
       gGrid.appendChild(t);
@@ -1113,9 +1117,34 @@
   $('about-close').addEventListener('click', function () { about.close(); });
   about.addEventListener('click', function (e) { if (e.target === about) about.close(); });
 
+  /* ---------- 11b. 移动端的排行榜抽屉 ----------
+     桌面端图与榜并排，顶栏那个按钮和遮罩都是 display:none；
+     窄屏时排行榜变成右侧抽屉，靠按钮、遮罩或 Esc 收回去。 */
+
+  var shelfBtn = $('btn-shelf');
+  var shelfScrim = $('shelf-scrim');
+
+  function shelfIsOpen() { return document.body.classList.contains('shelf-open'); }
+
+  function setShelf(open) {
+    document.body.classList.toggle('shelf-open', !!open);
+    if (!shelfBtn) return;
+    shelfBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    shelfBtn.setAttribute('aria-label', open ? '收起排行榜' : '打开排行榜');
+    shelfBtn.title = open ? '收起排行榜' : '打开排行榜';
+  }
+
+  if (shelfBtn) {
+    shelfBtn.addEventListener('click', function () { setShelf(!shelfIsOpen()); });
+  }
+  if (shelfScrim) {
+    shelfScrim.addEventListener('click', function () { setShelf(false); });
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
     if (detail.open || about.open) return;
+    if (shelfIsOpen()) { setShelf(false); return; }
     if (state.selectedId) setSelected(null, {});
   });
 
