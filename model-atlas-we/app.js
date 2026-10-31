@@ -1183,6 +1183,36 @@
     if (state.selectedId) setSelected(null, {});
   });
 
+  /* 竖屏手机整页转过 90° 之后，浏览器仍按未旋转的坐标算滚动量：榜单只认屏幕上的「向右划」，
+     上下划没反应、向左划也不动。旋转状态下干脆自己接管 #board 的手势：
+     屏幕纵向的滑动换成榜单的上下滚动，横向的也一并接管（向右划 = 往下翻，向左划 = 往上翻），
+     免得两个方向的手感一个用一个不用。没转过屏（横屏、桌面）时这些判断直接跳过，全交给浏览器。 */
+  var portraitTurn = window.matchMedia('(max-width: 640px) and (orientation: portrait)');
+
+  var boardTouch = null;
+  boardEl.addEventListener('touchstart', function (e) {
+    if (!portraitTurn.matches || e.touches.length !== 1) { boardTouch = null; return; }
+    var t = e.touches[0];
+    boardTouch = { x: t.clientX, y: t.clientY, top: boardEl.scrollTop, on: false };
+  }, { passive: true });
+
+  boardEl.addEventListener('touchmove', function (e) {
+    if (!boardTouch || e.touches.length !== 1) return;
+    var t = e.touches[0];
+    var dx = t.clientX - boardTouch.x, dy = t.clientY - boardTouch.y;
+    if (!boardTouch.on) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      boardTouch.on = true;
+    }
+    /* 屏幕纵向与横向都换算成榜单的纵向滚动：屏幕上「往前翻」的方向对应 scrollTop 变大 */
+    var move = Math.abs(dy) >= Math.abs(dx) ? -dy : dx;
+    boardEl.scrollTop = boardTouch.top + move;
+    e.preventDefault();
+  }, { passive: false });
+
+  boardEl.addEventListener('touchend', function () { boardTouch = null; }, { passive: true });
+  boardEl.addEventListener('touchcancel', function () { boardTouch = null; }, { passive: true });
+
   /* 画布尺寸变了就按新尺寸重画：换图例（厂商筛选）、拉实时数据、字体到位、手机转屏、
      排行榜抽屉收放都会改动 #chart-wrap 的高度，只靠 window.resize 是抓不到的。 */
   var chartTimer = null;

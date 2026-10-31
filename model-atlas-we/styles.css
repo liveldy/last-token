@@ -521,6 +521,8 @@ body.no-motion #dots { animation: none; }
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* 滚到头别把滚动接力给页面：窄屏竖屏旋转时页面自己是能滚的，接力过去就是整页跑偏 */
+  overscroll-behavior: contain;
   list-style: none;
   padding: 4px 0 40px;
   scrollbar-width: thin;
@@ -911,8 +913,11 @@ table.price .total { font-weight: 600; }
 @media (max-width: 900px) {
   :root { --top-h: 56px; }
 
-  /* 图占满整屏，排行榜收进右侧抽屉，抽屉的开合靠顶栏那个按钮 */
-  #app { grid-template-columns: minmax(0, 1fr); }
+  /* 图占满整屏，排行榜收进右侧抽屉，抽屉的开合靠顶栏那个按钮。
+     这里必须把 #app 的 z-index 还成 auto：#app 一旦自建层叠上下文（桌面端的 z-index: 2），
+     抽屉的 z-index: 9 就只在 #app 内部生效，整块被压在 #shelf-scrim 下面——看着像多了一层遮罩，
+     点不动、也翻不了页。放开之后抽屉和遮罩才在同一个层叠上下文里比大小。 */
+  #app { grid-template-columns: minmax(0, 1fr); z-index: auto; }
   #btn-shelf { display: inline-flex; }
 
   #list-pane {
