@@ -1001,6 +1001,9 @@ table.price .total { font-weight: 600; }
     left: 0;
     width: 100vh;
     height: 100vw;
+    /* 转过之后页面的「横」就是屏上的「竖」，任何一次多余的滚动看起来都是整页跑掉；
+       clip 连脚本触发的那点滚动都不给，抽屉、弹窗都在顶层或自身盒子里，不受影响 */
+    overflow: clip;
     transform-origin: top left;
     transform: rotate(90deg) translateY(-100%);
   }
