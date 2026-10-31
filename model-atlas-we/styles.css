@@ -985,6 +985,56 @@ table.price .total { font-weight: 600; }
   #hint { display: none; }
 }
 
+/* 竖着拿手机时整页转 90° 当横屏用：图铺在长边上，比竖着挤一条看得清。
+   把手机转过来（orientation 变 landscape）就回到常规横屏布局。 */
+@media (max-width: 640px) and (orientation: portrait) {
+  html { overflow: hidden; background: var(--bg); }
+
+  body {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100%);
+  }
+
+  /* 弹窗在顶层，不吃祖先的 transform，得自己再转一遍 */
+  dialog {
+    position: fixed;
+    inset: 0 auto auto 0;
+    width: 100vh;
+    height: 100vw;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100%);
+  }
+  dialog[open] { animation: none; }
+  #detail { width: 100vh; max-height: 100vw; }
+
+  /* 转过来之后实际能用的高度就是屏宽，按横屏那一套压一压头部与页脚 */
+  :root { --top-h: 46px; }
+  .pane-head { padding: 8px 12px 6px; }
+  .pane-sub { display: none; }
+  #chart-foot { padding: 4px 12px 6px; }
+  #chart-foot .chips { display: none; }
+  #hint { display: none; }
+}
+
+/* 手机上 100vh 会算进地址栏，动态视口单位更贴合实际可见区域 */
+@supports (height: 100dvw) {
+  @media (max-width: 640px) and (orientation: portrait) {
+    body { width: 100dvh; height: 100dvw; }
+    dialog { width: 100dvh; height: 100dvw; }
+    #detail { width: 100dvh; max-height: 100dvw; }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
   .glow { animation: none !important; }
