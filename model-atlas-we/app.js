@@ -29,7 +29,8 @@
     selectedId: null,
     org: null,
     query: '',
-    live: false
+    live: false,
+    frontier: true
   };
 
   if (!state.data) {
@@ -80,9 +81,22 @@
     return n;
   }
 
+  function tspan(cls, text) {
+    var t = svg('tspan', { class: cls });
+    t.textContent = text;
+    return t;
+  }
+
   function usd(v) {
     if (v == null) return '—';
     return '$' + v.toFixed(v < 1 ? 3 : 2);
+  }
+
+  /* 价格去掉多余的零：$0.090 → $0.09、$8.00 → $8（图上的标注用，详情里照旧保留两位） */
+  function usdTight(v) {
+    if (v == null) return '—';
+    var s = (v < 1 ? v.toFixed(3) : v.toFixed(2)).replace(/\.?0+$/, '');
+    return '$' + s;
   }
 
   function ctxFmt(n) {
@@ -165,6 +179,7 @@
     var iw = W - CH.l - CH.r, ih = H - CH.t - CH.b;
     var sx = function (c) { return CH.l + (Math.log10(c) - x0) / (x1 - x0) * iw; };
     var sy = function (s) { return CH.t + (y1 - s) / (y1 - y0) * ih; };
+    var geo = { sx: sx, sy: sy, l: CH.l, t: CH.t, r: CH.l + iw, b: CH.t + ih };
 
     /* 网格 + 刻度 */
     var gGrid = svg('g');
@@ -209,6 +224,15 @@
     var mty = svg('text', { class: 'med-text', x: CH.l + iw - 4, y: sy(medScore) - 4, 'text-anchor': 'end' });
     mty.textContent = '中位能力 ' + medScore.toFixed(1);
     chartEl.appendChild(mty);
+
+    /* 斩杀区域的底色铺在点下面，线和徽标最后画，压在点上 */
+    var gKillShade = svg('g', { class: 'kill-shade' });
+    chartEl.appendChild(gKillShade);
+
+    /* 优势曲线也铺在点下面 */
+    var gFrontier = svg('g', { class: 'frontier' });
+    chartEl.appendChild(gFrontier);
+    if (state.frontier) drawFrontier(gFrontier, geo);
 
     /* 点：按能力从低到高画，强者压在上面 */
     var gPt = svg('g');
@@ -291,6 +315,14 @@
 
     state.chartNodes = nodes;
     state.medLines = { cost: medCost, score: medScore };
+    state.geo = geo;
+    /* 优势曲线的名字放在最上层，免得被点的标签压住 */
+    var gFrontierLabel = svg('g', { class: 'frontier-names' });
+    chartEl.appendChild(gFrontierLabel);
+    if (state.frontier) drawFrontierLabel(gFrontierLabel, geo);
+    var gKillMarks = svg('g', { class: 'kill-marks' });
+    chartEl.appendChild(gKillMarks);
+    state.killLayer = { shade: gKillShade, marks: gKillMarks };
     paintChartSelection();
     var note = $('chart-note');
     if (note) {
@@ -332,6 +364,209 @@
 
   function hideTip() { tipEl.hidden = true; }
 
+  /* ---------- 3b. 斩杀线与斩杀数 ----------
+     选中一个模型，它能“斩杀”的是更贵、同时又不比它强的那些：把它的成本画成一条竖线、
+     能力画成一条横线，两条线右下那一块就是斩杀区域。
+     斩杀数写成两个数字、中间一道斜线：
+       斜线前 —— 图上这几十个点里斩掉几个；
+       斜线后 —— 全库有公开标价的那些模型里斩掉几个（没标价的排不出横轴位置，算不进斩杀）。 */
+
+  function killCounts(m) {
+    var plot = plottedModels(), p = 0, all = 0, priced = 0, i, x;
+    for (i = 0; i < plot.length; i++) {
+      x = plot[i];
+      if (x.id !== m.id && x.cost >= m.cost && x.score <= m.score) p++;
+    }
+    for (i = 0; i < state.data.models.length; i++) {
+      x = state.data.models[i];
+      if (x.cost === null) continue;
+      priced++;
+      if (x.id !== m.id && x.cost >= m.cost && x.score <= m.score) all++;
+    }
+    return { plot: p, all: all, priced: priced };
+  }
+
+  function paintKill() {
+    var layer = state.killLayer, g = state.geo;
+    if (!layer || !g) return;
+    clear(layer.shade);
+    clear(layer.marks);
+
+    var m = state.selectedId ? state.byId[state.selectedId] : null;
+    if (!m || m.cost === null) return;
+    /* 只给图上真有的点画：名次靠后、没画在图上（或没有标价）的模型，选中时图上什么都没有 */
+    if (!state.chartNodes || !state.chartNodes[m.id]) return;
+
+    var cx = g.sx(m.cost), cy = g.sy(m.score);
+    /* 兜底：点被挤出画布边缘（换数据后可能出现）也不画，免得线贴着边框跑 */
+    if (cx < g.l - 0.5 || cx > g.r + 0.5 || cy < g.t - 0.5 || cy > g.b + 0.5) return;
+
+    var w = g.r - cx, h = g.b - cy;
+    if (w > 0.5 && h > 0.5) {
+      layer.shade.appendChild(svg('rect', { class: 'kill-zone', x: cx, y: cy, width: w, height: h }));
+    }
+
+    /* 两条阈值线贯穿全图，方便对着坐标轴读数 */
+    layer.marks.appendChild(svg('line', { class: 'kill-line', x1: cx, y1: g.t, x2: cx, y2: g.b }));
+    layer.marks.appendChild(svg('line', { class: 'kill-line', x1: g.l, y1: cy, x2: g.r, y2: cy }));
+    /* 真正框住斩杀区域的那两条边，画实一点 */
+    if (w > 0.5) layer.marks.appendChild(svg('line', { class: 'kill-edge', x1: cx, y1: cy, x2: g.r, y2: cy }));
+    if (h > 0.5) layer.marks.appendChild(svg('line', { class: 'kill-edge', x1: cx, y1: cy, x2: cx, y2: g.b }));
+
+    var costLabel = svg('text', {
+      class: 'kill-label',
+      x: cx + (cx > g.r - 100 ? -6 : 6),
+      y: g.b - 6,
+      'text-anchor': cx > g.r - 100 ? 'end' : 'start'
+    });
+    costLabel.textContent = '成本 ≥ ' + usdTight(m.cost);
+    layer.marks.appendChild(costLabel);
+
+    /* 选中的点靠左就把能力标签挪到右边，免得压住它自己的名字 */
+    var scoreOnLeft = cx > (g.l + g.r) / 2;
+    var scoreLabel = svg('text', {
+      class: 'kill-label',
+      x: scoreOnLeft ? g.l + 5 : g.r - 5,
+      y: cy - 6 < g.t + 11 ? cy + 13 : cy - 6,
+      'text-anchor': scoreOnLeft ? 'start' : 'end'
+    });
+    scoreLabel.textContent = '能力 ≤ ' + m.score.toFixed(2);
+    layer.marks.appendChild(scoreLabel);
+
+    paintKillBadge(m, cx, cy);
+  }
+
+  function paintKillBadge(m, cx, cy) {
+    var g = state.geo;
+    var c = killCounts(m);
+
+    var badge = svg('g', { class: 'kill-badge' });
+    var line1 = svg('text', { class: 'kill-title', x: 0, y: 0 });
+    line1.appendChild(tspan('kill-word', '斩杀 '));
+    line1.appendChild(tspan('kill-num', String(c.plot)));
+    line1.appendChild(tspan('kill-sep', ' / '));
+    line1.appendChild(tspan('kill-num', String(c.all)));
+    var line2 = svg('text', { class: 'kill-sub', x: 0, y: 14 });
+    line2.textContent = '图上 ' + plottedModels().length + ' 个 · 全库 ' + c.priced + ' 个有标价';
+    badge.appendChild(line1);
+    badge.appendChild(line2);
+    state.killLayer.marks.appendChild(badge);
+
+    var b;
+    try { b = badge.getBBox(); } catch (e) { b = null; }
+    if (!b || !b.width) return;
+
+    var pad = 7;
+    badge.insertBefore(svg('rect', {
+      class: 'kill-badge-bg',
+      x: b.x - pad, y: b.y - pad, width: b.width + pad * 2, height: b.height + pad * 2, rx: 7
+    }), badge.firstChild);
+
+    /* 贴着选中的点放：优先落在斩杀区域里（右下），区域太扁就贴它的下沿；
+       点靠着图的右边时改放左侧，最后才退到区域的右下角和点上方 */
+    var boxW = b.width + pad * 2, boxH = b.height + pad * 2;
+    var gap = 12, edge = 4;
+    var inset = 8;
+    var spots = [
+      [cx + gap, cy + gap],
+      [cx + gap, g.b - inset - boxH],
+      [cx - gap - boxW, cy + gap],
+      [cx + gap, cy - gap - boxH],
+      [cx - gap - boxW, cy - gap - boxH],
+      [g.r - inset - boxW, g.b - inset - boxH]
+    ];
+    var pos = null;
+    for (var i = 0; i < spots.length; i++) {
+      var sx0 = spots[i][0], sy0 = spots[i][1];
+      if (sx0 >= g.l + edge && sx0 + boxW <= g.r - edge &&
+          sy0 >= g.t + edge && sy0 + boxH <= g.b - edge) { pos = spots[i]; break; }
+    }
+    if (!pos) {
+      pos = [
+        Math.min(Math.max(cx + gap, g.l + edge), g.r - edge - boxW),
+        Math.min(Math.max(cy + gap, g.t + edge), g.b - edge - boxH)
+      ];
+    }
+    badge.setAttribute('transform', 'translate(' + (pos[0] - (b.x - pad)).toFixed(1) + ' ' +
+      (pos[1] - (b.y - pad)).toFixed(1) + ')');
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  /* ---------- 3c. 优势曲线 ----------
+     把图上「最外沿」的那一串点连起来：从最便宜的一头走到最强的一头，只收
+     “没有更便宜、同时又不比它强的模型压在头上”的那些——也就是斩杀线永远碰不到的几个。
+     图上算，所以跟着「图上多少名」那个口径走。 */
+
+  function frontierModels() {
+    var sorted = plottedModels().slice().sort(function (a, b) {
+      return a.cost - b.cost || b.score - a.score;
+    });
+    var out = [], best = -Infinity;
+    for (var i = 0; i < sorted.length; i++) {
+      if (sorted[i].score > best) { out.push(sorted[i]); best = sorted[i].score; }
+    }
+    return out;
+  }
+
+  function drawFrontier(g, geo) {
+    var list = frontierModels();
+    if (list.length < 2) return;
+    var d = '';
+    for (var i = 0; i < list.length; i++) {
+      d += (i ? 'L' : 'M') + geo.sx(list[i].cost).toFixed(1) + ' ' + geo.sy(list[i].score).toFixed(1);
+    }
+    g.appendChild(svg('path', { class: 'frontier-line', d: d }));
+  }
+
+  function drawFrontierLabel(g, geo) {
+    var list = frontierModels();
+    if (list.length < 2) return;
+    var last = list[list.length - 1];
+    var x = geo.sx(last.cost), y = geo.sy(last.score);
+    var t = svg('text', { class: 'frontier-name' });
+    t.textContent = '优势曲线';
+    g.appendChild(t);
+    var spots = [[-10, 'end', -10], [10, 'start', -10], [-10, 'end', 15], [10, 'start', 15]];
+    for (var i = 0; i < spots.length; i++) {
+      t.setAttribute('text-anchor', spots[i][1]);
+      t.setAttribute('x', x + spots[i][0]);
+      t.setAttribute('y', y + spots[i][2]);
+      var b;
+      try { b = t.getBBox(); } catch (e) { b = null; }
+      if (!b || !b.width) return;
+      if (b.x < geo.l + 1 || b.x + b.width > geo.r - 1) continue;
+      if (b.y < geo.t + 1 || b.y + b.height > geo.b - 1) continue;
+      return;
+    }
+  }
+
+  /* ---------- 3d. 优势曲线开关 ---------- */
+
+  var FRONTIER_KEY = 'model-atlas.frontier';
+  var frontierBtn = $('btn-frontier');
+
+  function paintFrontierBtn() {
+    if (!frontierBtn) return;
+    frontierBtn.setAttribute('aria-pressed', state.frontier ? 'true' : 'false');
+  }
+
+  try {
+    if (localStorage.getItem(FRONTIER_KEY) === 'off') state.frontier = false;
+  } catch (e) { /* 忽略 */ }
+  paintFrontierBtn();
+
+  if (frontierBtn) {
+    frontierBtn.addEventListener('click', function () {
+      state.frontier = !state.frontier;
+      paintFrontierBtn();
+      try { localStorage.setItem(FRONTIER_KEY, state.frontier ? 'on' : 'off'); } catch (e) { /* 忽略 */ }
+      renderChart();
+    });
+  }
+
   function paintChartSelection() {
     if (!state.chartNodes) return;
     var sel = state.selectedId, org = state.org;
@@ -348,6 +583,7 @@
       t.classList.toggle('is-dimmed', !!(org && !orgMatches(m, org)));
       t.style.opacity = id === sel ? '1' : (org && !orgMatches(m, org) ? '.15' : '');
     });
+    paintKill();
   }
 
   function orgMatches(m, org) { return !!m && m.org === org; }

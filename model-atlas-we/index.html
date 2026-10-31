@@ -44,7 +44,13 @@
     <div class="pane-head">
       <div class="head-row">
         <h2 id="chart-title">能力图</h2>
-        <span class="head-note" id="chart-note"></span>
+        <div class="head-tools">
+          <button type="button" id="btn-frontier" class="toggle" aria-pressed="true"
+                  title="把图上最外沿的点连成一条线：从最便宜的一头走到最强的一头">
+            优势曲线
+          </button>
+          <span class="head-note" id="chart-note"></span>
+        </div>
       </div>
       <p class="pane-sub">
         <b>横轴</b> 参考成本（美元 / 百万 token，输入 : 输出 = 3 : 1）·
@@ -79,7 +85,7 @@
 
 <p id="hint" role="status">
   <span class="dot" aria-hidden="true"></span>
-  点图上的点跳到榜上那一名 · 点榜单任意一行看详情
+  点图上的点跳到榜上那一名并画出它的斩杀线 · 点榜单任意一行看详情
 </p>
 
 <!-- ========== 模型详情 ========== -->
@@ -104,6 +110,9 @@
   <p class="about-lead">
     左边是按厂商着色的能力-成本散点图，只画综合能力最靠前的那些模型；右边是全部模型的排行榜。
     两边的序号是同一个：点图上的点会跳到榜上那一名并把它点亮，点榜单的行会打开它的详情。
+    点图上的点还会带出它的<b>斩杀线</b>：竖线是它的成本、横线是它的能力，右下那一片里比它贵、同时又不比它强的模型
+    就是它能斩掉的，个数写成「图上 / 全库」两个数字。图头上的<b>优势曲线</b>把最外沿的点连成一条折线，
+    经过的都是没被任何模型斩杀的那几个，可以随时关掉。
   </p>
 
   <h3>综合能力怎么来的</h3>

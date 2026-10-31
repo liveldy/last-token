@@ -29,6 +29,7 @@
 
   --good: #4ade80;
   --warn: #fbbf24;
+  --kill: 248 113 113;
 
   --radius-control: 6px;
   --radius-card: 12px;
@@ -58,6 +59,7 @@ html:not(.dark) {
 
   --good: #15803d;
   --warn: #b45309;
+  --kill: 220 38 38;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -239,6 +241,49 @@ body.no-motion #dots { animation: none; }
   font-family: var(--mono);
   white-space: nowrap;
 }
+.head-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* 图上的开关：一个圆点 + 名字，按下就亮 */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 9999px;
+  border: 1px solid var(--control-border);
+  background: none;
+  color: var(--fg-faint);
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 150ms var(--ease), border-color 150ms var(--ease),
+    background-color 150ms var(--ease);
+}
+.toggle::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+}
+.toggle:hover { color: var(--fg-muted); border-color: var(--fg-faint); }
+.toggle[aria-pressed="true"] {
+  color: var(--fg);
+  border-color: rgb(var(--accent) / .5);
+  background: rgb(var(--accent) / .10);
+}
+.toggle[aria-pressed="true"]::before {
+  background: var(--accent-hex);
+  border-color: var(--accent-hex);
+}
 .pane-sub {
   margin-top: 5px;
   font-size: 11.5px;
@@ -337,6 +382,58 @@ body.no-motion #dots { animation: none; }
   stroke-linejoin: round;
 }
 .pt-label.is-sel { fill: var(--fg); font-weight: 600; }
+
+/* ---------- 优势曲线：图上最外沿那一串点连成的线 ---------- */
+
+.frontier-line {
+  fill: none;
+  stroke: rgb(var(--accent) / .7);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.frontier-name {
+  fill: rgb(var(--accent) / .9);
+  font-size: 10px;
+  font-family: var(--mono);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--bg) 88%, transparent);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* ---------- 斩杀线：选中一个模型时，它能斩掉的那一片 ---------- */
+
+.kill-zone { fill: rgb(var(--kill) / .12); }
+.kill-line {
+  stroke: rgb(var(--kill) / .5);
+  stroke-width: 1;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+}
+.kill-edge { stroke: rgb(var(--kill)); stroke-width: 1.5; opacity: .8; }
+.kill-label {
+  fill: rgb(var(--kill) / .95);
+  font-size: 10px;
+  font-family: var(--mono);
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--bg) 88%, transparent);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.kill-badge { pointer-events: none; }
+.kill-badge-bg {
+  fill: color-mix(in srgb, var(--surface) 94%, transparent);
+  stroke: rgb(var(--kill) / .45);
+  stroke-width: 1;
+}
+.kill-title { fill: var(--fg); font-size: 12px; }
+.kill-word { fill: var(--fg-muted); font-size: 11px; }
+.kill-num { fill: var(--fg); font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.kill-sep { fill: var(--fg-faint); font-family: var(--mono); font-size: 11px; }
+.kill-sub { fill: var(--fg-faint); font-family: var(--mono); font-size: 9.5px; }
 
 /* ---------- 悬浮提示 ---------- */
 
